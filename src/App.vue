@@ -7,44 +7,45 @@
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { Color, Kind, GameState } from "./types";
+import { ChessHelper } from "./chess"
 import HelloWorld from "./components/HelloWorld.vue";
 import ChessField from "./components/ChessField.vue";
 import ChessBoard from "./components/ChessBoard.vue";
+import ChessPiece from './components/ChessPiece.vue';
 
 @Component({
   components: {
     HelloWorld,
     ChessBoard,
-    ChessField
+    ChessField,
+    ChessPiece,
   }
 })
 export default class App extends Vue {
+  chessHelper = new ChessHelper();
   gameState: GameState = {
-    timerWhite: 0,
-    timerBlack: 0,
-    takenPieces: [],
-    fields: [
-      { background: Color.White, name: "A8", piece: {color: Color.Black, kind: Kind.King }},
-      { background: Color.Black, name: "A7", piece: {color: Color.Black, kind: Kind.Queen }},
-      { background: Color.White, name: "A6", piece: undefined},
-      { background: Color.Black, name: "A5", piece: undefined},
-      { background: Color.White, name: "A4", piece: {color: Color.Black, kind: Kind.Rook }},
-      { background: Color.Black, name: "A3", piece: {color: Color.Black, kind: Kind.Bishop }},
-      { background: Color.White, name: "A2", piece: {color: Color.Black, kind: Kind.Knight }},
-      { background: Color.Black, name: "A1", piece: {color: Color.Black, kind: Kind.Pawn }},
+    timerWhite: 125,
+    timerBlack: 99,
+    takenPieces: [
+      {color: Color.Black, kind: Kind.King }
     ],
+    fields: this.chessHelper.getInitialBoard(),
     turn: Color.White
   };
 }
 </script>
 
 <style lang="scss">
+@import "./_variables.scss";
+
 #app {
   font-family: "Avenir", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
+body {background-color: $background}
 </style>
