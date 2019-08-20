@@ -13,7 +13,13 @@
     </div>
     <div class="border">
       <div class="board shadow">
-        <ChessField v-for="(p, k) in gameState.fields" v-bind:key="k" v-bind:field="p" />
+        <ChessField
+          v-for="(p, k) in gameState.fields"
+          v-bind:key="k"
+          v-bind:field="p"
+          v-bind:possible="gameState.possibleMoves.includes(k)"
+          v-bind:selected="k === gameState.selectedPiece"
+        />
       </div>
     </div>
     <div class="border">

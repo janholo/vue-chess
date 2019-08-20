@@ -29,6 +29,8 @@ export default class App extends Vue {
     takenPieces: [
       {color: Color.Black, kind: Kind.King }
     ],
+    selectedPiece: 5,
+    possibleMoves: [ 13, 21 ],
     fields: this.chessHelper.getInitialBoard(),
     turn: Color.White
   };

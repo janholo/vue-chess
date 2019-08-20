@@ -3,6 +3,8 @@ export class GameState {
   takenPieces: Piece[] = [];
   timerWhite: number = 0;
   timerBlack: number = 0;
+  selectedPiece: number = -1;
+  possibleMoves: number[] = [];
   turn: Color = Color.White;
 }
 

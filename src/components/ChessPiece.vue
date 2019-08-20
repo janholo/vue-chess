@@ -1,5 +1,5 @@
 <template>
-  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45" class="fill-stroke-black" v-bind:class="{ select : selectable }" >
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45" class="fill-stroke-black" v-bind:class="{ selected : selected, selectable : !selected  }" >
     <!-- white king //-->
     <g
       style="fill:none; fill-opacity:1; fill-rule:evenodd; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;"
@@ -77,12 +77,10 @@
       />
       <path
         d="M 9.5 25.5 A 0.5 0.5 0 1 1 8.5,25.5 A 0.5 0.5 0 1 1 9.5 25.5 z"
-        style="fill:#000000; "
       />
       <path
         d="M 15 15.5 A 0.5 1.5 0 1 1  14,15.5 A 0.5 1.5 0 1 1  15 15.5 z"
         transform="matrix(0.866,0.5,-0.5,0.866,9.693,-5.173)"
-        style="fill:#000000; "
       />
     </g>
 
@@ -267,7 +265,7 @@ import { Kind, Color, Field, Piece } from "@/types";
 @Component
 export default class ChessPiece extends Vue {
   @Prop() private piece!: Piece;
-  @Prop() private selectable!: boolean;
+  @Prop() private selected!: boolean;
 
   IsBlack() {
     return (
@@ -306,13 +304,21 @@ export default class ChessPiece extends Vue {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="scss">
+@import "../_variables.scss";
+
 .fill-stroke-black {
   fill: black;
   stroke: black; 
 }
 
-.select:hover {
-  fill: goldenrod;
-  stroke: goldenrod;
+.selectable:hover {
+  fill: $figure-hover;
+  stroke: $figure-hover;
 }
+
+.selected {
+  fill: $figure-selected;
+  stroke: $figure-selected;  
+}
+
 </style>
