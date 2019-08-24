@@ -1,10 +1,11 @@
 <template>
-  <div class="figure" v-bind:class="{ white: IsWhiteBackground() }">
+  <div class="figure" v-bind:class="{ white: IsWhiteBackground(), 'is-clickable': clickable }">
     <svg class="display-block" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45">
       <text
         x="1"
         y="10"
         font-size="12"
+        class="unselectable"
         v-bind:class="{ 'text-color-white': IsWhiteBackground(), 'text-color-black': !IsWhiteBackground() }"
       >{{field.name}}</text>
     </svg>
@@ -32,8 +33,12 @@ export default class ChessField extends Vue {
   @Prop() private field!: Field;
   @Prop() private selected!: boolean;
   @Prop() private possible!: boolean;
+  @Prop() private clickable!: boolean;
   IsWhiteBackground() {
     return this.field.background == Color.White;
+  }
+  IsWhitePiece() {
+    return this.field.piece != undefined && this.field.piece.color === Color.White;
   }
 }
 </script>
@@ -46,8 +51,16 @@ export default class ChessField extends Vue {
   position: relative;
 }
 
+.is-clickable {
+  cursor: pointer;
+}
+
 .display-block {
   display: block;
+}
+
+.unselectable {
+  user-select: none;
 }
 
 .white {

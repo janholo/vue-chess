@@ -26,11 +26,9 @@ export default class App extends Vue {
   gameState: GameState = {
     timerWhite: 125,
     timerBlack: 99,
-    takenPieces: [
-      {color: Color.Black, kind: Kind.King }
-    ],
-    selectedPiece: 5,
-    possibleMoves: [ 13, 21 ],
+    takenPieces: [ ],
+    selectedPiece: -1,
+    possibleMoves: [ ],
     fields: this.chessHelper.getInitialBoard(),
     turn: Color.White
   };

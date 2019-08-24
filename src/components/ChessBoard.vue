@@ -7,7 +7,7 @@
           v-for="(p, k) in whiteTakenPieces()"
           v-bind:key="k"
           v-bind:piece="p.piece"
-          v-bind:style="{ gridColumn: p.column }"
+          v-bind:style="{ gridColumn: p.column, gridRow: 1 }"
         />
       </div>
     </div>
@@ -19,6 +19,8 @@
           v-bind:field="p"
           v-bind:possible="gameState.possibleMoves.includes(k)"
           v-bind:selected="k === gameState.selectedPiece"
+          v-bind:clickable="isClickable(k)"
+          v-on:click.native="onClick(k)"
         />
       </div>
     </div>
@@ -29,7 +31,7 @@
           v-for="(p, k) in blackTakenPieces()"
           v-bind:key="k"
           v-bind:piece="p.piece"
-          v-bind:style="{ gridColumn: p.column }"
+          v-bind:style="{ gridColumn: p.column, gridRow: 1 }"
         />
       </div>
     </div>
@@ -38,9 +40,10 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Color, Kind, GameState } from "@/types";
+import { Color, Kind, GameState, Piece } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
+import { ChessHelper } from '@/chess';
 
 @Component({
   components: {
@@ -50,17 +53,18 @@ import ChessPiece from "./ChessPiece.vue";
 })
 export default class ChessBoard extends Vue {
   @Prop() private gameState!: GameState;
+  chessHelper = new ChessHelper();
   whiteTakenPieces() {
-    let tmp = this.gameState.takenPieces.map(a => {
-      return { column: 18, piece: { color: Color.White, kind: Kind.King } };
+    let whitePieces = this.gameState.takenPieces.filter(p => p.color == Color.White);
+    return whitePieces.map((p, i) => {
+      return { column: 18-i, piece: p };
     });
-    return tmp;
   }
   blackTakenPieces() {
-    let tmp = this.gameState.takenPieces.map(a => {
-      return { column: 18, piece: { color: Color.Black, kind: Kind.King } };
+    let whitePieces = this.gameState.takenPieces.filter(p => p.color == Color.Black);
+    return whitePieces.map((p, i) => {
+      return { column: 18-i, piece: p };
     });
-    return tmp;
   }
   whiteTime() {
     return this.timeDisplay(this.gameState.timerWhite);
@@ -72,6 +76,26 @@ export default class ChessBoard extends Vue {
     let minutes = time % 60;
     let seconds = Math.round(time / 60);
     return ("0" + minutes).slice(-2) + ":" + ("0" + seconds).slice(-2);
+  }
+  onClick(id: number) {
+    this.chessHelper.clickField(id, this.gameState);
+    
+  }
+  isClickable(id: number) {
+    if(id === this.gameState.selectedPiece) {
+      return true;
+    }
+
+    if(this.gameState.selectedPiece != -1 && this.gameState.possibleMoves.includes(id))
+    {
+      return true;
+    }
+
+    if(this.gameState.fields[id].piece as Piece) {
+      return (this.gameState.fields[id].piece as Piece).color == this.gameState.turn;
+    }
+    
+    return false;
   }
 }
 </script>
