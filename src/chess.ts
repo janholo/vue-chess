@@ -84,9 +84,42 @@ export class ChessHelper {
         if (kind === Kind.Pawn) {
             return this.getPawnMoves(fieldId, gameState);
         }
+        if (kind === Kind.Bishop) {
+            return this.getBishopMoves(fieldId, gameState);
+        }
 
 
         return [];
+    }
+    getBishopMoves(fieldId: number, gameState: GameState): number[] {
+        let moves = []
+
+        let piece = gameState.fields[fieldId].piece as Piece;
+        let color = piece.color;
+
+        for (let x = -1; x < 2; x = x + 2) {
+            for (let y = -1; y < 2; y = y + 2) {
+                let count = 1;
+                while (true) {
+                    let pos = this.getPosition(fieldId, x * count, y * count);
+                    if (pos == undefined) {
+                        break;
+                    }
+                    let p = gameState.fields[pos].piece;
+                    if (p == undefined) {
+                        moves.push(pos as number);
+                    } else if(this.canTake(pos, color, gameState)) {
+                        moves.push(pos as number);
+                        break;
+                    } else {
+                        break;
+                    }
+                    count++;
+                }
+            }
+        }
+
+        return moves;
     }
     getPawnMoves(fieldId: number, gameState: GameState): number[] {
         let moves = []
@@ -109,21 +142,49 @@ export class ChessHelper {
         }
 
         //take to the right
-        //let takeLeft = this.getPosition(fieldId, 1, 1);
-
-
-
+        let y = color === Color.White ? -1 : 1;
+        let takeLeft = this.getPosition(fieldId, -1, y);
+        if (this.canTake(takeLeft, color, gameState)) {
+            moves.push(takeLeft as number);
+        }
+        let takeRight = this.getPosition(fieldId, 1, y);
+        if (this.canTake(takeRight, color, gameState)) {
+            moves.push(takeRight as number);
+        }
 
         return moves;
     }
+    canTake(piece: number | undefined, turn: Color, gameState: GameState) {
+        if (piece != undefined) {
+            let p = gameState.fields[piece].piece
+            if (p != undefined && p.color != turn) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    getPosition(fieldId: number, x: number, y: number) {
+        let targetX = (fieldId % 8) + x;
+        let targetY = (Math.floor(fieldId / 8)) + y;
+        if (targetX < 0 || targetX >= 8 || targetY < 0 || targetY >= 8) {
+            return undefined;
+        }
+        return targetY * 8 + targetX;
+    }
 
     movePiece(from: number, to: number, gameState: GameState) {
-        let movePiece = gameState.fields[from].piece;
+        let movePiece = gameState.fields[from].piece as Piece;
         gameState.fields[from].piece = undefined;
-
+        let color = movePiece.color;
         // add "to" piece to taken pieces
         if (gameState.fields[to].piece as Piece) {
             gameState.takenPieces.push(gameState.fields[to].piece as Piece)
+        }
+
+        // transform pawns to queens
+        if (Math.floor(to / 8) == 0 && color === Color.White || Math.floor(to / 8) == 7 && color === Color.Black) {
+            movePiece.kind = Kind.Queen;
         }
 
         gameState.fields[to].piece = movePiece;
