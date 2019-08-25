@@ -81,45 +81,59 @@ export class ChessHelper {
         let color = piece.color;
         let kind = piece.kind;
 
+        let moves: number[] = []
+
+        let verticalDirs = [[1,0],[0,1],[-1,0],[0,-1]];
+        let diagonalDirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
+        let knightMoves = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+
         if (kind === Kind.Pawn) {
-            return this.getPawnMoves(fieldId, gameState);
+            moves = moves.concat(this.getPawnMoves(fieldId, gameState));
         }
-        if (kind === Kind.Bishop) {
-            return this.getBishopMoves(fieldId, gameState);
+        if (kind === Kind.Bishop || kind === Kind.Queen) {
+            moves = moves.concat(this.getStandardMoves(fieldId, gameState, diagonalDirs, 8));
+        }
+        if (kind === Kind.Rook || kind === Kind.Queen) {
+            moves = moves.concat(this.getStandardMoves(fieldId, gameState, verticalDirs, 8));
+        }
+        if (kind === Kind.King) {
+            moves = moves.concat(this.getStandardMoves(fieldId, gameState, verticalDirs.concat(diagonalDirs), 1));
+        }
+        if (kind === Kind.Knight) {
+            moves = moves.concat(this.getStandardMoves(fieldId, gameState, knightMoves, 1));
         }
 
-
-        return [];
+        return moves;
     }
-    getBishopMoves(fieldId: number, gameState: GameState): number[] {
+    getStandardMoves(fieldId: number, gameState: GameState, dirs: number[][], maxSteps: number): ConcatArray<number> {
         let moves = []
 
         let piece = gameState.fields[fieldId].piece as Piece;
         let color = piece.color;
 
-        for (let x = -1; x < 2; x = x + 2) {
-            for (let y = -1; y < 2; y = y + 2) {
-                let count = 1;
-                while (true) {
-                    let pos = this.getPosition(fieldId, x * count, y * count);
-                    if (pos == undefined) {
-                        break;
-                    }
-                    let p = gameState.fields[pos].piece;
-                    if (p == undefined) {
-                        moves.push(pos as number);
-                    } else if(this.canTake(pos, color, gameState)) {
-                        moves.push(pos as number);
-                        break;
-                    } else {
-                        break;
-                    }
-                    count++;
+        for(let pos of dirs) {
+            let x = pos[0];
+            let y = pos[1];
+            let count = 1;
+            while (count <= maxSteps) {
+                let pos = this.getPosition(fieldId, x * count, y * count);
+                if (pos == undefined) {
+                    break;
                 }
+                let p = gameState.fields[pos].piece;
+                if (p == undefined) {
+                    moves.push(pos as number);
+                } else if(this.canTake(pos, color, gameState)) {
+                    moves.push(pos as number);
+                    break;
+                } else {
+                    break;
+                }
+                count++;
             }
         }
 
-        return moves;
+        return moves;        
     }
     getPawnMoves(fieldId: number, gameState: GameState): number[] {
         let moves = []
