@@ -23,15 +23,7 @@ import ChessPiece from './components/ChessPiece.vue';
 })
 export default class App extends Vue {
   chessHelper = new ChessHelper();
-  gameState: GameState = {
-    timerWhite: 125,
-    timerBlack: 99,
-    takenPieces: [],
-    selectedPiece: -1,
-    possibleMoves: [],
-    fields: this.chessHelper.getInitialBoard(),
-    turn: Color.White
-  };
+  gameState: GameState = new GameState(this.chessHelper.getInitialBoard());
 }
 </script>
 

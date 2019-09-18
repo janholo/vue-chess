@@ -1,29 +1,21 @@
 # vue-chess
 
-## Project setup
-```
-npm install
-```
-
-### Compiles and hot-reloads for development
-```
+```bash
 npm run serve
 ```
 
-### Compiles and minifies for production
-```
+```bash
 npm run build
 ```
 
-### Run your tests
-```
-npm run test
-```
+## Lints and fixes files
 
-### Lints and fixes files
-```
+```bash
 npm run lint
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## State Machine
+
+WhiteTurn -> Draw | Win | BlackTurn
+
+BlackTurn -> Draw | BlackWin | WhiteTurn

@@ -2,7 +2,7 @@
   <div>
     <div class="border">
       <div class="info-grid">
-        <div class="info-text shadow">{{whiteTime()}}</div>
+        <div class="info-text shadow">{{blackTime()}}</div>
         <ChessPiece
           v-for="(p, k) in whiteTakenPieces()"
           v-bind:key="k"
@@ -26,7 +26,7 @@
     </div>
     <div class="border">
       <div class="info-grid">
-        <div class="info-text shadow">{{blackTime()}}</div>
+        <div class="info-text shadow">{{whiteTime()}}</div>
         <ChessPiece
           v-for="(p, k) in blackTakenPieces()"
           v-bind:key="k"
@@ -35,15 +35,24 @@
         />
       </div>
     </div>
+    <div v-if="IsDraw() || IsWhiteWin() || IsBlackWin()" class="modal">
+       <div class="modal-content">
+        <span class="close" v-on:click="CloseModal()">&times;</span>
+        <p v-if="IsDraw()">Game ended in a DRAW.</p>
+        <p v-if="IsWhiteWin()">White WIN</p>
+        <p v-if="IsBlackWin()">Black WIN</p>
+        <p>Reload the site to start a new game</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Color, Kind, GameState, Piece } from "@/types";
+import { Color, Kind, GameState, Piece, GameResult } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
-import { ChessHelper } from '@/chess';
+import { ChessHelper } from "@/chess";
 
 @Component({
   components: {
@@ -54,16 +63,33 @@ import { ChessHelper } from '@/chess';
 export default class ChessBoard extends Vue {
   @Prop() private gameState!: GameState;
   chessHelper = new ChessHelper();
+  gameResult: GameResult = GameResult.Pending;
+  IsDraw() {
+    return this.gameResult == GameResult.Draw;
+  }
+  IsWhiteWin() {
+    return this.gameResult == GameResult.WhiteWin;
+  }
+  IsBlackWin() {
+    return this.gameResult == GameResult.BlackWin;
+  }
+  CloseModal() {
+    this.gameResult = GameResult.Pending;
+  }
   whiteTakenPieces() {
-    let whitePieces = this.gameState.takenPieces.filter(p => p.color == Color.White);
+    let whitePieces = this.gameState.takenPieces.filter(
+      p => p.color == Color.White
+    );
     return whitePieces.map((p, i) => {
-      return { column: 18-i, piece: p };
+      return { column: 18 - i, piece: p };
     });
   }
   blackTakenPieces() {
-    let whitePieces = this.gameState.takenPieces.filter(p => p.color == Color.Black);
+    let whitePieces = this.gameState.takenPieces.filter(
+      p => p.color == Color.Black
+    );
     return whitePieces.map((p, i) => {
-      return { column: 18-i, piece: p };
+      return { column: 18 - i, piece: p };
     });
   }
   whiteTime() {
@@ -73,28 +99,31 @@ export default class ChessBoard extends Vue {
     return this.timeDisplay(this.gameState.timerBlack);
   }
   timeDisplay(time: number) {
-    let minutes = time % 60;
-    let seconds = Math.round(time / 60);
+    let seconds = time % 60;
+    let minutes = Math.round(time / 60);
     return ("0" + minutes).slice(-2) + ":" + ("0" + seconds).slice(-2);
   }
   onClick(id: number) {
-    this.chessHelper.clickField(id, this.gameState);
-    
+    this.gameResult = this.chessHelper.clickField(id, this.gameState);
   }
   isClickable(id: number) {
-    if(id === this.gameState.selectedPiece) {
+    if (id === this.gameState.selectedPiece) {
       return true;
     }
 
-    if(this.gameState.selectedPiece != -1 && this.gameState.possibleMoves.includes(id))
-    {
+    if (
+      this.gameState.selectedPiece != -1 &&
+      this.gameState.possibleMoves.includes(id)
+    ) {
       return true;
     }
 
-    if(this.gameState.fields[id].piece as Piece) {
-      return (this.gameState.fields[id].piece as Piece).color == this.gameState.turn;
+    if (this.gameState.fields[id].piece as Piece) {
+      return (
+        (this.gameState.fields[id].piece as Piece).color == this.gameState.turn
+      );
     }
-    
+
     return false;
   }
 }
@@ -133,4 +162,48 @@ export default class ChessBoard extends Vue {
 .shadow {
   box-shadow: 2px 2px 5px black;
 }
+
+ /* The Modal (background) */
+.modal {
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 40% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 60%; /* Could be more or less, depending on screen size */
+  height: 10%;
+}
+
+.modal-content p {
+  font-size: 2vh;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* The Close Button */
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+} 
 </style>

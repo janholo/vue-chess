@@ -1,6 +1,8 @@
-import { Field, Color, Kind, Piece, GameState } from './types';
+import { Field, Color, Kind, Piece, GameState, GameResult } from './types';
+var cloneDeep = require('lodash.clonedeep');
 
 export class ChessHelper {
+    timerId: number = 0;
     getInitialBoard(): Field[] {
         let board: Field[] = []
         for (let y = 7; y >= 0; y--) {
@@ -50,12 +52,12 @@ export class ChessHelper {
             return x % 2 === 0 ? Color.Black : Color.White;
         }
     }
-    clickField(fieldId: number, gameState: GameState) {
+    clickField(fieldId: number, gameState: GameState): GameResult {
         // if already selected -> deselect
         if (gameState.selectedPiece === fieldId) {
             gameState.selectedPiece = -1;
             gameState.possibleMoves = [];
-            return;
+            return GameResult.Pending;
         }
 
         // if a piece of the person whos turn it is -> select
@@ -63,20 +65,62 @@ export class ChessHelper {
         if (p != undefined && p.color === gameState.turn) {
             gameState.selectedPiece = fieldId;
             gameState.possibleMoves = this.calcPossibleMoves(fieldId, gameState);
-            return;
+            return GameResult.Pending;
         }
 
         // if this is a legal move -> do it
         if (gameState.possibleMoves.includes(fieldId)) {
             this.movePiece(gameState.selectedPiece, fieldId, gameState);
-
             gameState.selectedPiece = -1;
             gameState.possibleMoves = [];
-            gameState.turn = gameState.turn == Color.White ? Color.Black : Color.White;
-            return;
+            clearInterval(this.timerId);
+
+            // check for draw or win
+            let check = this.isOpponentInCheck(gameState.turn, gameState);
+
+            let movesPossible = gameState.fields.some((f, i) => {
+                if(f.piece == undefined || f.piece.color === gameState.turn) { 
+                    return false;
+                }
+                let moves = this.calcPossibleMoves(i, gameState);
+                return moves.length > 0;
+            });
+
+            if(!movesPossible) {
+                gameState.turn = gameState.turn === Color.White ? Color.Black : Color.White;
+                if(check) {
+                    return gameState.turn === Color.White ? GameResult.BlackWin : GameResult.WhiteWin;
+                } else {
+                    return GameResult.Draw;
+                }
+            }
+
+            if(gameState.turn === Color.White) {
+                this.timerId = setInterval(() => gameState.timerBlack++, 1000);
+                gameState.turn = Color.Black;
+
+            } else {
+                this.timerId = setInterval(() => gameState.timerWhite++, 1000);
+                gameState.turn = Color.White;
+            }
         }
+        
+        return GameResult.Pending;
     }
-    calcPossibleMoves(fieldId: number, gameState: GameState): number[] {
+    isOpponentInCheck(color: Color, gameState: GameState) {
+        let check = gameState.fields.some((f, i) => {
+            if(f.piece == undefined || f.piece.color != color) { 
+                return false;
+            }
+            let moves = this.calcPossibleMovesRaw(i, gameState);
+            return moves.some(m => {
+                let p = gameState.fields[m].piece;
+                return p != undefined && p.color != color && p.kind === Kind.King
+            });
+        });
+        return check;
+    }
+    calcPossibleMovesRaw(fieldId: number, gameState: GameState): number[] {
         let piece = gameState.fields[fieldId].piece as Piece;
         let color = piece.color;
         let kind = piece.kind;
@@ -104,6 +148,28 @@ export class ChessHelper {
         }
 
         return moves;
+    }    
+    calcPossibleMoves(fieldId: number, gameState: GameState): number[] {
+        let moves = this.calcPossibleMovesRaw(fieldId, gameState);
+
+        let piece = gameState.fields[fieldId].piece as Piece;
+        let color = piece.color;
+
+        let validMoves = [];
+
+        // check for each move if it result in check
+        for(let m of moves)
+        {
+            let newGameState = gameState.copy();
+            
+            this.movePiece(fieldId, m, newGameState);
+
+            if(!this.isOpponentInCheck(color === Color.White ? Color.Black : Color.White, newGameState)) {
+                validMoves.push(m);
+            }
+        }
+
+        return validMoves;
     }
     getStandardMoves(fieldId: number, gameState: GameState, dirs: number[][], maxSteps: number): ConcatArray<number> {
         let moves = []
@@ -133,7 +199,7 @@ export class ChessHelper {
             }
         }
 
-        return moves;        
+        return moves;
     }
     getPawnMoves(fieldId: number, gameState: GameState): number[] {
         let moves = []
@@ -197,7 +263,7 @@ export class ChessHelper {
         }
 
         // transform pawns to queens
-        if (Math.floor(to / 8) == 0 && color === Color.White || Math.floor(to / 8) == 7 && color === Color.Black) {
+        if ((Math.floor(to / 8) == 0 && color === Color.White || Math.floor(to / 8) == 7 && color === Color.Black) && movePiece.kind === Kind.Pawn) {
             movePiece.kind = Kind.Queen;
         }
 

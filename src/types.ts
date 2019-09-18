@@ -1,3 +1,5 @@
+var cloneDeep = require('lodash.clonedeep');
+
 export class GameState {
   fields: Field[] = [];
   takenPieces: Piece[] = [];
@@ -6,6 +8,19 @@ export class GameState {
   selectedPiece: number = -1;
   possibleMoves: number[] = [];
   turn: Color = Color.White;
+
+  constructor(initialBoard: Field[]) {
+    this.timerWhite = 0;
+    this.timerBlack = 0;
+    this.takenPieces = [];
+    this.selectedPiece = -1;
+    this.possibleMoves = [];
+    this.fields = initialBoard;
+    this.turn = Color.White;
+}
+  copy() {
+    return cloneDeep(this);
+  }
 }
 
 export class Field {
@@ -32,3 +47,10 @@ export enum Color {
     Black,
     White
   }
+
+export enum GameResult {
+  Pending,
+  WhiteWin,
+  BlackWin,
+  Draw
+}
