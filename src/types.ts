@@ -8,6 +8,7 @@ export class GameState {
   selectedPiece: number = -1;
   possibleMoves: number[] = [];
   turn: Color = Color.White;
+  isThinking: boolean = false;
 
   constructor(initialBoard: Field[]) {
     this.timerWhite = 0;
@@ -17,6 +18,7 @@ export class GameState {
     this.possibleMoves = [];
     this.fields = initialBoard;
     this.turn = Color.White;
+    this.isThinking = false;
 }
   copy() {
     return cloneDeep(this);

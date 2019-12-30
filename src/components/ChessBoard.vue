@@ -2,7 +2,7 @@
   <div>
     <div class="border">
       <div class="info-grid">
-        <div class="info-text shadow">{{blackTime()}}</div>
+        <button v-on:click="onClickMove()" :disabled="!isBlackTurn() || isThinking()" class="move-button shadow">{{isThinking() ? "Thinking" : "Move"}}</button>
         <ChessPiece
           v-for="(p, k) in whiteTakenPieces()"
           v-bind:key="k"
@@ -52,7 +52,7 @@ import { Component, Prop, Vue } from "vue-property-decorator";
 import { Color, Kind, GameState, Piece, GameResult } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
-import { ChessHelper } from "@/chess";
+import { ChessHelpers } from "@/chessHelpers";
 
 @Component({
   components: {
@@ -62,10 +62,16 @@ import { ChessHelper } from "@/chess";
 })
 export default class ChessBoard extends Vue {
   @Prop() private gameState!: GameState;
-  chessHelper = new ChessHelper();
+  chessHelper = new ChessHelpers();
   gameResult: GameResult = GameResult.Pending;
   IsDraw() {
     return this.gameResult == GameResult.Draw;
+  }
+  isBlackTurn() {
+    return this.gameState.turn === Color.Black;
+  }
+  isThinking() {
+    return this.gameState.isThinking;
   }
   IsWhiteWin() {
     return this.gameResult == GameResult.WhiteWin;
@@ -105,6 +111,11 @@ export default class ChessBoard extends Vue {
   }
   onClick(id: number) {
     this.gameResult = this.chessHelper.clickField(id, this.gameState);
+  }
+  onClickMove() {
+    this.gameState.isThinking = true;
+    this.gameResult = this.chessHelper.startBackgroundAi(this.gameState);
+    this.gameState.isThinking = false;
   }
   isClickable(id: number) {
     if (id === this.gameState.selectedPiece) {
@@ -154,13 +165,29 @@ export default class ChessBoard extends Vue {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 4vw;
+  font-size: 3vmin;
   background: $bg-timer;
   color: $color-timer;
 }
 
 .shadow {
   box-shadow: 2px 2px 5px black;
+}
+
+.move-button {
+  font-size: 3vmin;
+  border-style: none;
+  padding: 0;
+  margin: 0;
+  transition: transform 0.1s;
+}
+
+.move-button:active {
+  transform: translateX(0.2vmin) translateY(0.2vmin)
+}
+
+.move-button:disabled {
+  background-color: grey;
 }
 
  /* The Modal (background) */

@@ -1,28 +1,26 @@
 <template>
   <div id="app">
-    <ChessBoard v-bind:gameState="gameState" />
+    <ChessBoard class="chess-board" v-bind:gameState="gameState" />
   </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
 import { Color, Kind, GameState } from "./types";
-import { ChessHelper } from "./chess"
-import HelloWorld from "./components/HelloWorld.vue";
+import { ChessHelpers } from "./chessHelpers"
 import ChessField from "./components/ChessField.vue";
 import ChessBoard from "./components/ChessBoard.vue";
 import ChessPiece from './components/ChessPiece.vue';
 
 @Component({
   components: {
-    HelloWorld,
     ChessBoard,
     ChessField,
     ChessPiece,
   }
 })
 export default class App extends Vue {
-  chessHelper = new ChessHelper();
+  chessHelper = new ChessHelpers();
   gameState: GameState = new GameState(this.chessHelper.getInitialBoard());
 }
 </script>
@@ -30,14 +28,19 @@ export default class App extends Vue {
 <style lang="scss">
 @import "./_variables.scss";
 
-#app {
+body {
+  background-color: $background;
   font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
-body {background-color: $background}
+#app {
+  display: grid;
+  place-items: center;
+}
+
+.chess-board {
+  width: 95vmin;
+  max-width: 35rem;
+}
+
 </style>
