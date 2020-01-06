@@ -1,10 +1,12 @@
-import { GameState, Color } from './types';
+import { GameState, Color, Kind } from './types';
 import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId } from './chessRules';
 
 export function calculateBestMove(gameState: GameState): [number, number] {
     let moves = allBlackMoves(gameState);
 
     let selectedMove = randomMove(moves);
+
+    console.log("Board value: " + calcBoardValue(gameState))
 
     console.log("Selected move: " + getCoordFromId(selectedMove[0]) + " -> " + getCoordFromId(selectedMove[1]))
 
@@ -32,6 +34,36 @@ function allBlackMoves(gameState: GameState) {
     return blackMoves;
 }
 
+function calcPieceValue(kind: Kind): number {
+    if(kind === Kind.Pawn) {
+        return 1;
+    }
+    if(kind === Kind.Bishop || kind === Kind.Knight) {
+        return 3;
+    }
+    if(kind === Kind.Rook) {
+        return 5;
+    }
+    if(kind === Kind.Queen) {
+        return 9;
+    }
+    if(kind === Kind.King) {
+        return 0;
+    }
+
+    throw new RangeError("Unknown Kind: " + kind);
+}
+
 export function calcBoardValue(gameState: GameState): number {
-    return 1;
+    let value = 0;
+    
+    for(let p of gameState.fields) {
+        if(p.piece == undefined) {
+            continue;
+        }
+
+        let pieceValue = calcPieceValue(p.piece.kind);
+        value += (p.piece.color === Color.Black) ? pieceValue : -pieceValue;
+    }
+    return value;
 }
