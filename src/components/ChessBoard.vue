@@ -49,7 +49,7 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Color, Kind, GameState, Piece, GameResult } from "@/types";
+import { Color, GameResult, Piece, GameState } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
 import { ChessHelpers } from "@/chessHelpers";

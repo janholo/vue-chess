@@ -260,7 +260,7 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Kind, Color, Field, Piece } from "@/types";
+import { Kind, Color, Piece } from "@/types";
 
 @Component
 export default class ChessPiece extends Vue {

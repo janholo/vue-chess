@@ -6,7 +6,7 @@
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import { Color, Kind, GameState } from "./types";
+import { GameState } from "./types";
 import { ChessHelpers } from "./chessHelpers"
 import ChessField from "./components/ChessField.vue";
 import ChessBoard from "./components/ChessBoard.vue";

@@ -21,7 +21,7 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Kind, Color, Field } from "@/types";
+import { Color, Field } from "@/types";
 import ChessPiece from "./ChessPiece.vue";
 
 @Component({
