@@ -1,5 +1,5 @@
 import { Field, Color, Kind, Piece, GameState, GameResult } from './types';
-import { calcPossibleMoves, isOpponentInCheck, movePiece, getBackgroundColor, getCoord } from './chessRules'
+import { calcPossibleMoves, isOpponentInCheck, movePiece, getBackgroundColor, getCoord, checkGameState } from './chessRules'
 import { calculateBestMove } from './chessAi';
 var cloneDeep = require('lodash.clonedeep');
 
@@ -79,24 +79,9 @@ export class ChessHelpers {
         gameState.possibleMoves = [];
         clearInterval(this.timerId);
 
-        // check for draw or win
-        let check = isOpponentInCheck(gameState.turn, gameState);
-
-        let movesPossible = gameState.fields.some((f, i) => {
-            if(f.piece == undefined || f.piece.color === gameState.turn) { 
-                return false;
-            }
-            let moves = calcPossibleMoves(i, gameState);
-            return moves.length > 0;
-        });
-
-        if(!movesPossible) {
-            gameState.turn = gameState.turn === Color.White ? Color.Black : Color.White;
-            if(check) {
-                return gameState.turn === Color.White ? GameResult.BlackWin : GameResult.WhiteWin;
-            } else {
-                return GameResult.Draw;
-            }
+        let result = checkGameState(gameState);
+        if(result !== GameResult.Pending) {
+            return result;
         }
 
         if(gameState.turn === Color.White) {
@@ -110,11 +95,12 @@ export class ChessHelpers {
         return GameResult.Pending;
     }
     startBackgroundAi(gameState: GameState): GameResult {
-        let [piece, target] = calculateBestMove(gameState);
-        let tempResult = this.clickFieldRaw(piece, gameState);
+        let result = calculateBestMove(gameState, 1);
+        let move = result[0];
+        let tempResult = this.clickFieldRaw(move.source, gameState);
         if(tempResult != GameResult.Pending) {
             alert('WTF');
         }
-        return this.clickFieldRaw(target, gameState);
+        return this.clickFieldRaw(move.target, gameState);
     }
 }

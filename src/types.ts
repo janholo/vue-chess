@@ -20,7 +20,7 @@ export class GameState {
     this.turn = Color.White;
     this.isThinking = false;
 }
-  copy() {
+  copy(): GameState {
     return cloneDeep(this);
   }
 }
@@ -55,4 +55,13 @@ export enum GameResult {
   WhiteWin,
   BlackWin,
   Draw
+}
+
+export class Move {
+  source: number = 0;
+  target: number = 0;
+  constructor(source: number, target: number) {
+    this.source = source;
+    this.target = target;
+  }
 }

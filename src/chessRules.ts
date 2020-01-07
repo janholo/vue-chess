@@ -190,3 +190,25 @@ export function getBackgroundColor(x: number, y: number): Color {
         return x % 2 === 0 ? Color.Black : Color.White;
     }
 }
+export function checkGameState(gameState: GameState): GameResult {
+    let check = isOpponentInCheck(gameState.turn, gameState);
+
+    let movesPossible = gameState.fields.some((f, i) => {
+        if(f.piece == undefined || f.piece.color === gameState.turn) { 
+            return false;
+        }
+        let moves = calcPossibleMoves(i, gameState);
+        return moves.length > 0;
+    });
+
+    if(!movesPossible) {
+        gameState.turn = gameState.turn === Color.White ? Color.Black : Color.White;
+        if(check) {
+            return gameState.turn === Color.White ? GameResult.BlackWin : GameResult.WhiteWin;
+        } else {
+            return GameResult.Draw;
+        }
+    }
+
+    return GameResult.Pending;
+}
