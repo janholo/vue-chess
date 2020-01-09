@@ -14,9 +14,10 @@
     <div class="border">
       <div class="board shadow">
         <ChessField
-          v-for="(p, k) in gameState.fields"
+          v-for="(p, k) in getFieldAndFieldInfo()"
           v-bind:key="k"
-          v-bind:field="p"
+          v-bind:field="p[0]"
+          v-bind:fieldInfo="p[1]"
           v-bind:possible="gameState.possibleMoves.includes(k)"
           v-bind:selected="k === gameState.selectedPiece"
           v-bind:clickable="isClickable(k)"
@@ -53,6 +54,7 @@ import { Color, GameResult, Piece, GameState } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
 import { ChessHelpers } from "@/chessHelpers";
+import { isSameColor } from '../chessRules';
 
 @Component({
   components: {
@@ -64,6 +66,10 @@ export default class ChessBoard extends Vue {
   @Prop() private gameState!: GameState;
   chessHelper = new ChessHelpers();
   gameResult: GameResult = GameResult.Pending;
+  getFieldAndFieldInfo() {
+    let zipped = this.gameState.boardState.fields.map((x, i) => [x, this.gameState.fieldInfos[i]]);
+    return zipped;
+  }
   IsDraw() {
     return this.gameResult == GameResult.Draw;
   }
@@ -83,16 +89,16 @@ export default class ChessBoard extends Vue {
     this.gameResult = GameResult.Pending;
   }
   whiteTakenPieces() {
-    let whitePieces = this.gameState.takenPieces.filter(
-      p => p.color == Color.White
+    let whitePieces = this.gameState.boardState.takenPieces.filter(
+      p => p < 0
     );
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });
   }
   blackTakenPieces() {
-    let whitePieces = this.gameState.takenPieces.filter(
-      p => p.color == Color.Black
+    let whitePieces = this.gameState.boardState.takenPieces.filter(
+      p => p > 0
     );
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
@@ -129,13 +135,7 @@ export default class ChessBoard extends Vue {
       return true;
     }
 
-    if (this.gameState.fields[id].piece as Piece) {
-      return (
-        (this.gameState.fields[id].piece as Piece).color == this.gameState.turn
-      );
-    }
-
-    return false;
+    return isSameColor(this.gameState.boardState.fields[id], this.gameState.turn);
   }
 }
 </script>

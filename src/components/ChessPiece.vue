@@ -261,6 +261,7 @@
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
 import { Kind, Color, Piece } from "@/types";
+import { isSameColor, getKind } from '@/chessRules';
 
 @Component
 export default class ChessPiece extends Vue {
@@ -268,36 +269,28 @@ export default class ChessPiece extends Vue {
   @Prop() private selected!: boolean;
 
   IsBlack() {
-    return (
-      this.piece != undefined && this.piece.color == Color.Black
-    );
+    return isSameColor(this.piece, Color.Black);
   }
   IsWhite() {
-    return (
-      this.piece != undefined && this.piece.color == Color.White
-    );
+    return isSameColor(this.piece, Color.White);
   }
   IsKing() {
-    return this.piece != undefined && this.piece.kind == Kind.King;
+    return getKind(this.piece) === Kind.King;
   }
   IsQueen() {
-    return this.piece != undefined && this.piece.kind == Kind.Queen;
+    return getKind(this.piece) === Kind.Queen;
   }
   IsBishop() {
-    return (
-      this.piece != undefined && this.piece.kind == Kind.Bishop
-    );
+    return getKind(this.piece) === Kind.Bishop;
   }
   IsRook() {
-    return this.piece != undefined && this.piece.kind == Kind.Rook;
+    return getKind(this.piece) === Kind.Rook;
   }
   IsPawn() {
-    return this.piece != undefined && this.piece.kind == Kind.Pawn;
+    return getKind(this.piece) === Kind.Pawn;
   }
   IsKnight() {
-    return (
-      this.piece != undefined && this.piece.kind == Kind.Knight
-    );
+    return getKind(this.piece) === Kind.Knight;
   }
 }
 </script>

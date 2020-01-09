@@ -21,7 +21,7 @@ import ChessPiece from './components/ChessPiece.vue';
 })
 export default class App extends Vue {
   chessHelper = new ChessHelpers();
-  gameState: GameState = new GameState(this.chessHelper.getInitialBoard());
+  gameState: GameState = new GameState();
 }
 </script>
 

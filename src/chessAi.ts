@@ -1,20 +1,20 @@
-import { GameState, Color, Kind, GameResult, Move } from './types';
-import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState } from './chessRules';
+import { GameState, Color, Kind, GameResult, Move, Piece, BoardState } from './types';
+import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState, getKind } from './chessRules';
 
 export function calculateBestMove(gameState: GameState, depth: number): [Move, number] {
     let startTime = performance.now();
     let moveCount = 0;
 
-    let blackMoves = allMoves(gameState, Color.Black);
+    let blackMoves = allMoves(gameState.boardState, Color.Black);
     
     let bestMoves: [Move, number][] = blackMoves.map(m => [m, -9999]);
     
     for(let blackMove of blackMoves) {
         // do black move
-        let newStateBlack = gameState.copy();
-        let result = doAiMove(blackMove.source, blackMove.target, newStateBlack);
+        let newStateBlack = gameState.boardState.copy();
+        let result = doAiMove(blackMove.source, blackMove.target, newStateBlack, Color.Black);
         moveCount += 1;
-        // discard move is lost or draw
+        // discard move if lost or draw
         if(result === GameResult.Draw || result === GameResult.WhiteWin) {
             continue;
         }
@@ -27,9 +27,9 @@ export function calculateBestMove(gameState: GameState, depth: number): [Move, n
         let worstScore = 9999;
         for(let whiteMove of whiteMoves) {
             let newStateWhite = newStateBlack.copy();
-            let result = doAiMove(whiteMove.source, whiteMove.target, newStateWhite);
+            let result = doAiMove(whiteMove.source, whiteMove.target, newStateWhite, Color.White);
             moveCount += 1;
-            // discard move is lost or draw
+            // discard move if lost or draw
             if(result === GameResult.Draw || result === GameResult.WhiteWin) {
                 continue;
             }
@@ -69,32 +69,26 @@ export function calculateBestMove(gameState: GameState, depth: number): [Move, n
     return selectedMove;
 }
 
-function doAiMove(source: number, target: number, gameState: GameState) {
-    movePiece(source, target, gameState);
+function doAiMove(source: number, target: number, boardState: BoardState, turn: Color) {
+    movePiece(source, target, boardState);
 
-    let result = checkGameState(gameState);
+    let result = checkGameState(boardState, turn);
     if(result !== GameResult.Pending) {
         return result;
-    }
-
-    if(gameState.turn === Color.White) {
-        gameState.turn = Color.Black;
-    } else {
-        gameState.turn = Color.White;
     }
 
     return GameResult.Pending;
 }
 
-function allMoves(gameState: GameState, color: Color) {
-    let blackPieces = getFieldIdsOfPieces(color, gameState);
+function allMoves(boardState: BoardState, color: Color) {
+    let pieces = getFieldIdsOfPieces(color, boardState);
     
-    let blackMoves = blackPieces.flatMap(fieldId => {
-        let moves = calcPossibleMoves(fieldId, gameState);
+    let allMoves = pieces.flatMap(fieldId => {
+        let moves = calcPossibleMoves(fieldId, boardState);
         return moves.map(m => new Move(fieldId, m));
     });
 
-    return blackMoves;
+    return allMoves;
 }
 
 function calcPieceValue(kind: Kind): number {
@@ -117,16 +111,16 @@ function calcPieceValue(kind: Kind): number {
     throw new RangeError("Unknown Kind: " + kind);
 }
 
-export function calcBoardValue(gameState: GameState): number {
+export function calcBoardValue(boardState: BoardState): number {
     let value = 0;
     
-    for(let p of gameState.fields) {
-        if(p.piece == undefined) {
+    for(let p of boardState.fields) {
+        if(p === Piece.Empty) {
             continue;
         }
 
-        let pieceValue = calcPieceValue(p.piece.kind);
-        value += (p.piece.color === Color.Black) ? pieceValue : -pieceValue;
+        let pieceValue = calcPieceValue(getKind(p));
+        value += Math.sign(p) * pieceValue;
     }
     return value;
 }

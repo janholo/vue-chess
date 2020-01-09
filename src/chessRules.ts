@@ -1,87 +1,155 @@
-import { Field, Color, Kind, Piece, GameState, GameResult } from './types';
+import { Color, Kind, Piece, GameState, GameResult, FieldInfo, BoardState } from './types';
 var cloneDeep = require('lodash.clonedeep');
 
-export function isOpponentInCheck(color: Color, gameState: GameState) {
-    let check = gameState.fields.some((f, i) => {
-        if(f.piece == undefined || f.piece.color != color) { 
+export function otherColor(color: Color): Color {
+    return (color + 1) % 2;
+}
+
+export function isSameColor(piece: Piece, color: Color) {
+    if(piece > 0 && color === Color.Black) {
+        return true;
+    }
+    if(piece < 0 && color === Color.White) {
+        return true;
+    }
+    return false;
+}
+
+export function isOtherColor(piece: Piece, color: Color) {
+    if(piece > 0 && color === Color.White) {
+        return true;
+    }
+    if(piece < 0 && color === Color.Black) {
+        return true;
+    }
+    return false;
+}
+
+export function isSameColorOrEmpty(piece: Piece, color: Color) {
+    if(piece >= 0 && color === Color.Black) {
+        return true;
+    }
+    if(piece <= 0 && color === Color.White) {
+        return true;
+    }
+    return false;    
+}
+
+export function isOtherColorOrEmpty(piece: Piece, color: Color) {
+    if(piece >= 0 && color === Color.White) {
+        return true;
+    }
+    if(piece <= 0 && color === Color.Black) {
+        return true;
+    }
+    return false;    
+}
+
+export function getPiece(color: Color, kind: Kind): Piece {
+    if(color === Color.White) {
+        return -kind;
+    }
+    return <Piece><unknown>kind;
+}
+
+function getColor (piece: Piece) {
+    if(piece > 0) {
+        return Color.Black;
+    }
+    if(piece < 0) {
+        return Color.White;
+    }
+
+    throw new RangeError("Piece has no color"); 
+}
+
+export function getKind(piece: Piece): Kind {
+    return <Kind>Math.abs(piece);
+}
+
+export function isOpponentInCheck(color: Color, boardState: BoardState) {
+    let check = boardState.fields.some((f, i) => {
+        if(isOtherColorOrEmpty(f, color)) { 
             return false;
         }
-        let moves = calcPossibleMovesRaw(i, gameState);
+        let moves = calcPossibleMovesRaw(i, boardState);
+        let colorKing = getPiece(otherColor(color), Kind.King)
         return moves.some(m => {
-            let p = gameState.fields[m].piece;
-            return p != undefined && p.color != color && p.kind === Kind.King
+            let p = boardState.fields[m];
+            return p === colorKing;
         });
     });
     return check;
 }
-export function getFieldIdsOfPieces(color: Color, gameState: GameState) {
+export function getFieldIdsOfPieces(color: Color, boardState: BoardState) {
     let ids = [];
 
     for (let fieldId = 0; fieldId < 64; fieldId++) {
-        let piece = gameState.fields[fieldId].piece;
-        if(piece != undefined && piece.color === color) {
+        let piece = boardState.fields[fieldId];
+        if(isSameColor(piece, color)) {
             ids.push(fieldId);
         }
     }
 
     return ids;
 }
-function calcPossibleMovesRaw(fieldId: number, gameState: GameState): number[] {
-    let piece = gameState.fields[fieldId].piece as Piece;
-    let color = piece.color;
-    let kind = piece.kind;
+
+let verticalDirs = [[1,0],[0,1],[-1,0],[0,-1]];
+let diagonalDirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
+let knightMoves = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+
+function calcPossibleMovesRaw(fieldId: number, boardState: BoardState): number[] {
+    let piece = boardState.fields[fieldId];
+    let kind = getKind(piece);
 
     let moves: number[] = []
 
-    let verticalDirs = [[1,0],[0,1],[-1,0],[0,-1]];
-    let diagonalDirs = [[1,1],[1,-1],[-1,1],[-1,-1]];
-    let knightMoves = [[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
-
     if (kind === Kind.Pawn) {
-        moves = moves.concat(getPawnMoves(fieldId, gameState));
+        moves = moves.concat(getPawnMoves(fieldId, boardState));
     }
     if (kind === Kind.Bishop || kind === Kind.Queen) {
-        moves = moves.concat(getStandardMoves(fieldId, gameState, diagonalDirs, 8));
+        moves = moves.concat(getStandardMoves(fieldId, boardState, diagonalDirs, 8));
     }
     if (kind === Kind.Rook || kind === Kind.Queen) {
-        moves = moves.concat(getStandardMoves(fieldId, gameState, verticalDirs, 8));
+        moves = moves.concat(getStandardMoves(fieldId, boardState, verticalDirs, 8));
     }
     if (kind === Kind.King) {
-        moves = moves.concat(getStandardMoves(fieldId, gameState, verticalDirs.concat(diagonalDirs), 1));
+        moves = moves.concat(getStandardMoves(fieldId, boardState, verticalDirs.concat(diagonalDirs), 1));
     }
     if (kind === Kind.Knight) {
-        moves = moves.concat(getStandardMoves(fieldId, gameState, knightMoves, 1));
+        moves = moves.concat(getStandardMoves(fieldId, boardState, knightMoves, 1));
     }
 
     return moves;
 }    
-export function calcPossibleMoves(fieldId: number, gameState: GameState): number[] {
-    let moves = calcPossibleMovesRaw(fieldId, gameState);
+export function calcPossibleMoves(fieldId: number, boardState: BoardState): number[] {
+    let moves = calcPossibleMovesRaw(fieldId, boardState);
 
-    let piece = gameState.fields[fieldId].piece as Piece;
-    let color = piece.color;
+    let piece = boardState.fields[fieldId];
+    let color = getColor(piece);
 
     let validMoves = [];
 
     // check for each move if it result in check
     for(let m of moves)
     {
-        let newGameState = gameState.copy();
+        let newBoardState = boardState.copy();
         
-        movePiece(fieldId, m, newGameState);
+        movePiece(fieldId, m, newBoardState);
 
-        if(!isOpponentInCheck(color === Color.White ? Color.Black : Color.White, newGameState)) {
+        if(!isOpponentInCheck(otherColor(color), newBoardState)) {
             validMoves.push(m);
         }
     }
 
     return validMoves;
 }
-function getStandardMoves(fieldId: number, gameState: GameState, dirs: number[][], maxSteps: number): ConcatArray<number> {
+
+function getStandardMoves(fieldId: number, boardState: BoardState, dirs: number[][], maxSteps: number): number[] {
     let moves = []
 
-    let piece = gameState.fields[fieldId].piece as Piece;
-    let color = piece.color;
+    let piece = boardState.fields[fieldId];
+    let color = getColor(piece);
 
     for(let pos of dirs) {
         let x = pos[0];
@@ -92,11 +160,11 @@ function getStandardMoves(fieldId: number, gameState: GameState, dirs: number[][
             if (pos == undefined) {
                 break;
             }
-            let p = gameState.fields[pos].piece;
-            if (p == undefined) {
-                moves.push(pos as number);
-            } else if(canTake(pos, color, gameState)) {
-                moves.push(pos as number);
+            let p = boardState.fields[pos];
+            if (p === Piece.Empty) {
+                moves.push(pos);
+            } else if(canTake(pos, color, boardState)) {
+                moves.push(pos);
                 break;
             } else {
                 break;
@@ -107,43 +175,42 @@ function getStandardMoves(fieldId: number, gameState: GameState, dirs: number[][
 
     return moves;
 }
-function getPawnMoves(fieldId: number, gameState: GameState): number[] {
+function getPawnMoves(fieldId: number, boardState: BoardState): number[] {
     let moves = []
-
-    let piece = gameState.fields[fieldId].piece as Piece;
-    let color = piece.color;
+    let piece = boardState.fields[fieldId];
+    let color = getColor(piece);
 
     //normal move forward
-    let forwardId = color === Color.White ? fieldId - 8 : fieldId + 8;
-    if (gameState.fields[forwardId].piece == undefined) {
+    let forwardId = fieldId + Math.sign(piece) * 8;
+    if (boardState.fields[forwardId] === Piece.Empty) {
         moves.push(forwardId);
 
         //check double forward
-        if ((color === Color.White && fieldId >= 8 * 6) || (color === Color.Black && fieldId < 16)) {
-            let doubleForwardId = color === Color.White ? fieldId - 16 : fieldId + 16;
-            if (gameState.fields[doubleForwardId].piece == undefined) {
+        if ((piece === Piece.WhitePawn && fieldId >= 8 * 6) || (piece === Piece.BlackPawn && fieldId < 16)) {
+            let doubleForwardId = fieldId + Math.sign(piece) * 16;
+            if (boardState.fields[doubleForwardId] === Piece.Empty) {
                 moves.push(doubleForwardId);
             }
         }
     }
 
     //take to the right
-    let y = color === Color.White ? -1 : 1;
+    let y = piece === Piece.WhitePawn ? -1 : 1;
     let takeLeft = getPosition(fieldId, -1, y);
-    if (canTake(takeLeft, color, gameState)) {
+    if (canTake(takeLeft, color, boardState)) {
         moves.push(takeLeft as number);
     }
     let takeRight = getPosition(fieldId, 1, y);
-    if (canTake(takeRight, color, gameState)) {
+    if (canTake(takeRight, color, boardState)) {
         moves.push(takeRight as number);
     }
 
     return moves;
 }
-function canTake(piece: number | undefined, turn: Color, gameState: GameState) {
+function canTake(piece: number | undefined, turn: Color, boardState: BoardState) {
     if (piece != undefined) {
-        let p = gameState.fields[piece].piece
-        if (p != undefined && p.color != turn) {
+        let p = boardState.fields[piece]
+        if (isOtherColor(p, turn)) {
             return true;
         }
     }
@@ -159,21 +226,21 @@ function getPosition(fieldId: number, x: number, y: number) {
     return targetY * 8 + targetX;
 }
 
-export function movePiece(from: number, to: number, gameState: GameState) {
-    let movePiece = gameState.fields[from].piece as Piece;
-    gameState.fields[from].piece = undefined;
-    let color = movePiece.color;
+export function movePiece(from: number, to: number, boardState: BoardState) {
+    let movePiece = boardState.fields[from];
+    boardState.fields[from] = Piece.Empty;
     // add "to" piece to taken pieces
-    if (gameState.fields[to].piece as Piece) {
-        gameState.takenPieces.push(gameState.fields[to].piece as Piece)
+    let oldPiece = boardState.fields[to];
+    if (oldPiece !== Piece.Empty) {
+        boardState.takenPieces.push(oldPiece)
     }
 
     // transform pawns to queens
-    if ((Math.floor(to / 8) == 0 && color === Color.White || Math.floor(to / 8) == 7 && color === Color.Black) && movePiece.kind === Kind.Pawn) {
-        movePiece.kind = Kind.Queen;
+    if (Math.floor(to / 8) == 0 && movePiece === Piece.WhitePawn || Math.floor(to / 8) == 7 && movePiece === Piece.BlackPawn) {
+        movePiece = movePiece / 3;
     }
 
-    gameState.fields[to].piece = movePiece;
+    boardState.fields[to] = movePiece;
 }
 export function getCoord(x: number, y: number): string {
     let map = ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -190,25 +257,70 @@ export function getBackgroundColor(x: number, y: number): Color {
         return x % 2 === 0 ? Color.Black : Color.White;
     }
 }
-export function checkGameState(gameState: GameState): GameResult {
-    let check = isOpponentInCheck(gameState.turn, gameState);
+export function calcFieldInfos(): FieldInfo[] {
+    let field: FieldInfo[] = []
+    for (let y = 7; y >= 0; y--) {
+        for (let x = 0; x < 8; x++) {
+            field.push({ background: getBackgroundColor(x, y), name: getCoord(x, y) })
+        }
+    }
+    return field;
+}
+export function checkGameState(boardState: BoardState, turn: Color): GameResult {
+    let check = isOpponentInCheck(turn, boardState);
 
-    let movesPossible = gameState.fields.some((f, i) => {
-        if(f.piece == undefined || f.piece.color === gameState.turn) { 
+    let movesPossible = boardState.fields.some((f, i) => {
+        if(isSameColorOrEmpty(f, turn)) { 
             return false;
         }
-        let moves = calcPossibleMoves(i, gameState);
+        let moves = calcPossibleMoves(i, boardState);
         return moves.length > 0;
     });
 
     if(!movesPossible) {
-        gameState.turn = gameState.turn === Color.White ? Color.Black : Color.White;
+        turn = otherColor(turn);
         if(check) {
-            return gameState.turn === Color.White ? GameResult.BlackWin : GameResult.WhiteWin;
+            return turn === Color.White ? GameResult.BlackWin : GameResult.WhiteWin;
         } else {
             return GameResult.Draw;
         }
     }
 
     return GameResult.Pending;
+}
+export function getInitialFields(): Piece[] {
+    let board: Piece[] = []
+    for (let y = 7; y >= 0; y--) {
+        for (let x = 0; x < 8; x++) {
+            let piece: Piece = Piece.Empty;
+
+            if (y === 7 || y === 0) {
+                if (x === 0 || x === 7) {
+                    piece = Piece.BlackRook;
+                }
+                if (x === 1 || x === 6) {
+                    piece = Piece.BlackKnight;
+                }
+                if (x === 2 || x === 5) {
+                    piece = Piece.BlackBishop;
+                }
+                if (x === 3) {
+                    piece = Piece.BlackQueen;
+                }
+                if (x === 4) {
+                    piece = Piece.BlackKing;
+                }
+            }
+            if (y === 6 || y === 1) {
+                piece = Piece.BlackPawn;
+            }
+
+            if ((y === 1 || y === 0) && piece != undefined) {
+                piece = -piece;
+            }
+
+            board.push(piece)
+        }
+    }
+    return board;
 }

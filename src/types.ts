@@ -1,8 +1,22 @@
+import { calcFieldInfos, getInitialFields } from './chessRules';
+
 var cloneDeep = require('lodash.clonedeep');
 
+export class BoardState {
+  fields: Piece[] = [];
+  takenPieces: Piece[] = []; 
+  constructor(field: Piece[]) {
+    this.fields = field;
+    this.takenPieces = [];
+  }
+  copy(): BoardState {
+    return cloneDeep(this);
+  }
+}
+
 export class GameState {
-  fields: Field[] = [];
-  takenPieces: Piece[] = [];
+  fieldInfos: FieldInfo[] = [];
+  boardState: BoardState = new BoardState([]);
   timerWhite: number = 0;
   timerBlack: number = 0;
   selectedPiece: number = -1;
@@ -10,44 +24,56 @@ export class GameState {
   turn: Color = Color.White;
   isThinking: boolean = false;
 
-  constructor(initialBoard: Field[]) {
+  constructor() {
     this.timerWhite = 0;
     this.timerBlack = 0;
-    this.takenPieces = [];
     this.selectedPiece = -1;
     this.possibleMoves = [];
-    this.fields = initialBoard;
+    this.fieldInfos = calcFieldInfos();
     this.turn = Color.White;
     this.isThinking = false;
-}
+    this.boardState = new BoardState(getInitialFields());
+  }
+
   copy(): GameState {
     return cloneDeep(this);
   }
 }
 
-export class Field {
+export class FieldInfo {
   background: Color = Color.White;
-  piece?: Piece = new Piece();
   name: string = "A8";
 }
 
-export class Piece {
-  color: Color = Color.White;
-  kind: Kind = Kind.Queen;
+export enum Piece {
+  WhiteKing = -1,
+  WhiteQueen = -2,
+  WhiteRook = -3,
+  WhiteBishop = -4,
+  WhiteKnight = -5,
+  WhitePawn = -6,
+  Empty = 0,
+  BlackKing = 1,
+  BlackQueen = 2,
+  BlackRook = 3,
+  BlackBishop = 4,
+  BlackKnight = 5,
+  BlackPawn = 6,
 }
 
 export enum Kind {
-    King,
-    Queen,
-    Rook,
-    Bishop,
-    Knight,
-    Pawn
+    None = 0,
+    King = 1,
+    Queen = 2,
+    Rook = 3,
+    Bishop = 4,
+    Knight = 5,
+    Pawn = 6
   }
   
 export enum Color {
-    Black,
-    White
+    Black = 0,
+    White = 1
   }
 
 export enum GameResult {
