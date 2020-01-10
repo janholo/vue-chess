@@ -60,7 +60,7 @@ export class ChessHelpers {
         return GameResult.Pending;
     }
     startBackgroundAi(gameState: GameState): GameResult {
-        let result = calculateBestMove(gameState, 1);
+        let result = calculateBestMove(gameState);
         let move = result[0];
         let tempResult = this.clickFieldRaw(move.source, gameState);
         if(tempResult != GameResult.Pending) {

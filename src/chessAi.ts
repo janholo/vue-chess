@@ -1,66 +1,80 @@
 import { GameState, Color, Kind, GameResult, Move, Piece, BoardState } from './types';
-import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState, getKind } from './chessRules';
+import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState, getKind, otherColor } from './chessRules';
 
-export function calculateBestMove(gameState: GameState, depth: number): [Move, number] {
-    let startTime = performance.now();
-    let moveCount = 0;
+let moveCount = 0;
 
-    let blackMoves = allMoves(gameState.boardState, Color.Black);
-    
-    let bestMoves: [Move, number][] = blackMoves.map(m => [m, -9999]);
-    
-    for(let blackMove of blackMoves) {
-        // do black move
-        let newStateBlack = gameState.boardState.copy();
-        let result = doAiMove(blackMove.source, blackMove.target, newStateBlack, Color.Black);
+function orderMoves(moves: Move[], boardState: BoardState): Move[] {
+    let movesAndValues: [Move, number][] = moves.map(m => [m, calcPieceValue(boardState.fields[m.target]) - calcPieceValue(boardState.fields[m.source])])
+
+    let sortedMoves = movesAndValues.sort((a,b) => b[1] - a[1]);
+
+    return sortedMoves.map(m => m[0]);
+}
+
+export function calculateBestHalfMove(turn: Color, boardState: BoardState, depth: number, alpha: number, beta: number): [Move, number] {
+    let validMoves = allMoves(boardState, turn);
+
+    let orderedMoves = orderMoves(validMoves, boardState);
+
+    // black turn -> search highest possible score
+    // white turn -> search lowest possible score
+    let bestMove: [Move, number] = [orderedMoves[0], turn === Color.Black ? -9999 : 9999];
+
+    for (let move of validMoves) {
+        // do move
+        let newBoardState = boardState.copy();
+        let result = doAiMove(move.source, move.target, newBoardState, turn);
         moveCount += 1;
-        // discard move if lost or draw
-        if(result === GameResult.Draw || result === GameResult.WhiteWin) {
-            continue;
+        if (result === GameResult.WhiteWin) {
+            if (turn === Color.Black) {
+                continue;
+            } else {
+                return [move, -9999];
+            }
         }
-        // immediately return move if won
-        if(result === GameResult.BlackWin) {
-            return [blackMove, 9999]; 
-        }
-
-        let whiteMoves = allMoves(newStateBlack, Color.White);
-        let worstScore = 9999;
-        for(let whiteMove of whiteMoves) {
-            let newStateWhite = newStateBlack.copy();
-            let result = doAiMove(whiteMove.source, whiteMove.target, newStateWhite, Color.White);
-            moveCount += 1;
-            // discard move if lost or draw
-            if(result === GameResult.Draw || result === GameResult.WhiteWin) {
+        if (result === GameResult.BlackWin) {
+            if (turn === Color.Black) {
+                return [move, 9999];
+            } else {
                 continue;
             }
-            // immediately return move if won
-            if(result === GameResult.BlackWin) {
-                return [blackMove, 9999]; 
-            }
-          
-            if(depth > 1) {
-                // TODO
-            } else {
-                let score = calcBoardValue(newStateWhite);
-                if(score < worstScore) {
-                    worstScore = score;
-                }
-            }
         }
-        // Check if the worst score of all the white moves is better than during the other black moves
-        if(worstScore === bestMoves[0][1]) {
-            bestMoves.push([blackMove, worstScore]);
+        let score;
+        if (result === GameResult.Draw) {
+            score = 0;
+        } else if (depth > 1) {
+            let result = calculateBestHalfMove(otherColor(turn), newBoardState, depth - 1, alpha, beta);
+            score = result[1];
+        } else {
+            score = calcBoardValue(newBoardState);
         }
-        if(worstScore > bestMoves[0][1]) {
-            bestMoves = []
-            bestMoves.push([blackMove, worstScore]);
+        if (turn === Color.Black) {
+            if (score > bestMove[1]) {
+                bestMove = [move, score];
+            }
+            alpha = Math.max(alpha, bestMove[1])
+        } else {
+            if (score < bestMove[1]) {
+                bestMove = [move, score];
+            }
+            beta = Math.min(beta, bestMove[1])
+        }
+
+        if (alpha >= beta) {
+            //console.log("cutoff")
+            break;
         }
     }
+    return bestMove;
+}
+
+export function calculateBestMove(gameState: GameState): [Move, number] {
+    let startTime = performance.now();
+    moveCount = 0;
+
+    let selectedMove = calculateBestHalfMove(Color.Black, gameState.boardState, 4, -9999, 9999);
 
     let endTime = performance.now();
-    
-    // select random move from the best ones
-    let selectedMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
 
     console.log("Selected move: " + getCoordFromId(selectedMove[0].source) + " -> " + getCoordFromId(selectedMove[0].target))
     console.log("Time: " + (endTime - startTime) + " ms");
@@ -73,7 +87,7 @@ function doAiMove(source: number, target: number, boardState: BoardState, turn: 
     movePiece(source, target, boardState);
 
     let result = checkGameState(boardState, turn);
-    if(result !== GameResult.Pending) {
+    if (result !== GameResult.Pending) {
         return result;
     }
 
@@ -82,7 +96,7 @@ function doAiMove(source: number, target: number, boardState: BoardState, turn: 
 
 function allMoves(boardState: BoardState, color: Color) {
     let pieces = getFieldIdsOfPieces(color, boardState);
-    
+
     let allMoves = pieces.flatMap(fieldId => {
         let moves = calcPossibleMoves(fieldId, boardState);
         return moves.map(m => new Move(fieldId, m));
@@ -91,20 +105,24 @@ function allMoves(boardState: BoardState, color: Color) {
     return allMoves;
 }
 
-function calcPieceValue(kind: Kind): number {
-    if(kind === Kind.Pawn) {
-        return 1;
+function calcPieceValue(piece: Piece): number {
+    if(piece === Piece.Empty) {
+        return 0;
     }
-    if(kind === Kind.Bishop || kind === Kind.Knight) {
-        return 3;
+    let kind = getKind(piece);
+    if (kind === Kind.Pawn) {
+        return 10;
     }
-    if(kind === Kind.Rook) {
-        return 5;
+    if (kind === Kind.Bishop || kind === Kind.Knight) {
+        return 30;
     }
-    if(kind === Kind.Queen) {
-        return 9;
+    if (kind === Kind.Rook) {
+        return 50;
     }
-    if(kind === Kind.King) {
+    if (kind === Kind.Queen) {
+        return 90;
+    }
+    if (kind === Kind.King) {
         return 0;
     }
 
@@ -113,13 +131,10 @@ function calcPieceValue(kind: Kind): number {
 
 export function calcBoardValue(boardState: BoardState): number {
     let value = 0;
-    
-    for(let p of boardState.fields) {
-        if(p === Piece.Empty) {
-            continue;
-        }
 
-        let pieceValue = calcPieceValue(getKind(p));
+    for (let p of boardState.fields) {
+        // TODO piece square tables https://www.chessprogramming.org/Simplified_Evaluation_Function
+        let pieceValue = calcPieceValue(p);
         value += Math.sign(p) * pieceValue;
     }
     return value;
