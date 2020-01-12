@@ -1,12 +1,12 @@
 import { GameState, Color, Kind, GameResult, Move, Piece, BoardState } from './types';
-import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState, getKind, otherColor } from './chessRules';
+import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState, getKind, otherColor, isSameColor } from './chessRules';
 
 let moveCount = 0;
 
 function orderMoves(moves: Move[], boardState: BoardState): Move[] {
-    let movesAndValues: [Move, number][] = moves.map(m => [m, calcPieceValue(boardState.fields[m.target]) - calcPieceValue(boardState.fields[m.source])])
+    let movesAndValues: [Move, number][] = moves.map(m => [m, calcPieceValue(boardState.fields[m.target], m.target) - calcPieceValue(boardState.fields[m.source], m.source)])
 
-    let sortedMoves = movesAndValues.sort((a,b) => b[1] - a[1]);
+    let sortedMoves = movesAndValues.sort((a, b) => b[1] - a[1]);
 
     return sortedMoves.map(m => m[0]);
 }
@@ -18,7 +18,7 @@ export function calculateBestHalfMove(turn: Color, boardState: BoardState, depth
 
     // black turn -> search highest possible score
     // white turn -> search lowest possible score
-    let bestMove: [Move, number] = [orderedMoves[0], turn === Color.Black ? -9999 : 9999];
+    let bestMove: [Move, number] = [orderedMoves[0], turn === Color.Black ? -99999 : 99999];
 
     for (let move of validMoves) {
         // do move
@@ -29,12 +29,12 @@ export function calculateBestHalfMove(turn: Color, boardState: BoardState, depth
             if (turn === Color.Black) {
                 continue;
             } else {
-                return [move, -9999];
+                return [move, -99999];
             }
         }
         if (result === GameResult.BlackWin) {
             if (turn === Color.Black) {
-                return [move, 9999];
+                return [move, 99999];
             } else {
                 continue;
             }
@@ -72,7 +72,7 @@ export function calculateBestMove(gameState: GameState): [Move, number] {
     let startTime = performance.now();
     moveCount = 0;
 
-    let selectedMove = calculateBestHalfMove(Color.Black, gameState.boardState, 4, -9999, 9999);
+    let selectedMove = calculateBestHalfMove(Color.Black, gameState.boardState, 4, -99999, 99999);
 
     let endTime = performance.now();
 
@@ -105,37 +105,108 @@ function allMoves(boardState: BoardState, color: Color) {
     return allMoves;
 }
 
-function calcPieceValue(piece: Piece): number {
-    if(piece === Piece.Empty) {
+let pieceSquareTablePawn = [ 
+    0,  0,  0,  0,  0,  0,  0,  0,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    10, 10, 20, 30, 30, 20, 10, 10,
+     5,  5, 10, 25, 25, 10,  5,  5,
+     0,  0,  0, 20, 20,  0,  0,  0,
+     5, -5,-10,  0,  0,-10, -5,  5,
+     5, 10, 10,-20,-20, 10, 10,  5,
+     0,  0,  0,  0,  0,  0,  0,  0
+];
+
+let pieceSquareTableKnight = [
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50,
+];
+
+let pieceSquareTableBishop = [
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10, 10, 10, 10, 10, 10, 10,-10,
+    -10,  5,  0,  0,  0,  0,  5,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20,
+]
+
+let pieceSquareTableRook = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, 10, 10, 10, 10,  5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+    0,  0,  0,  5,  5,  0,  0,  0
+]
+
+let pieceSquareTableQueen = [
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+     -5,  0,  5,  5,  5,  5,  0, -5,
+      0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20
+]
+
+let pieceSquareTableKing = [
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+    20, 20,  0,  0,  0,  0, 20, 20,
+    20, 30, 10,  0,  0, 10, 30, 20
+]
+
+function calcPieceValue(piece: Piece, position: number): number {
+    if (piece === Piece.Empty) {
         return 0;
+    }
+    if(isSameColor(piece, Color.Black)) {
+        // mirror position around center
+        let oldX = (position % 8);
+        let oldY = (Math.floor(position / 8));
+
+        position = (7 - oldY) * 8 + oldX;
     }
     let kind = getKind(piece);
     if (kind === Kind.Pawn) {
-        return 10;
+        return 100 + pieceSquareTablePawn[position];
     }
-    if (kind === Kind.Bishop || kind === Kind.Knight) {
-        return 30;
+    else if (kind === Kind.Bishop) {
+        return 300 + pieceSquareTableBishop[position];
     }
-    if (kind === Kind.Rook) {
-        return 50;
+    else if (kind === Kind.Knight) {
+        return 300 + pieceSquareTableKnight[position];
     }
-    if (kind === Kind.Queen) {
-        return 90;
+    else if (kind === Kind.Rook) {
+        return 500 + pieceSquareTableRook[position];
     }
-    if (kind === Kind.King) {
-        return 0;
+    else if (kind === Kind.Queen) {
+        return 900 + pieceSquareTableQueen[position];
+    }
+    else if (kind === Kind.King) {
+        return 0 + pieceSquareTableKing[position];
     }
 
     throw new RangeError("Unknown Kind: " + kind);
 }
 
 export function calcBoardValue(boardState: BoardState): number {
-    let value = 0;
-
-    for (let p of boardState.fields) {
-        // TODO piece square tables https://www.chessprogramming.org/Simplified_Evaluation_Function
-        let pieceValue = calcPieceValue(p);
-        value += Math.sign(p) * pieceValue;
-    }
-    return value;
+    return boardState.fields.map((p, i) => {
+        return Math.sign(p) * calcPieceValue(p, i);
+    }).reduce((prev, current) => prev + current, 0);
 }
