@@ -1,5 +1,5 @@
 <template>
-  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45" class="fill-stroke-black" v-bind:class="{ selected : selected, selectable : !selected  }" >
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45" class="fill-stroke-black" v-bind:class="{ selected : selected, selectable : !selected && !isShadow, pieceshadow : isShadow }" >
     <!-- white king //-->
     <g
       style="fill:none; fill-opacity:1; fill-rule:evenodd; stroke-width:1.5; stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4; stroke-dasharray:none; stroke-opacity:1;"
@@ -267,6 +267,7 @@ import { isSameColor, getKind } from '@/chessRules';
 export default class ChessPiece extends Vue {
   @Prop() private piece!: Piece;
   @Prop() private selected!: boolean;
+  @Prop() private isShadow!: boolean;
 
   IsBlack() {
     return isSameColor(this.piece, Color.Black);
@@ -302,6 +303,10 @@ export default class ChessPiece extends Vue {
 .fill-stroke-black {
   fill: black;
   stroke: black; 
+}
+
+.pieceshadow {
+  opacity: 0.1;
 }
 
 .selectable:hover {

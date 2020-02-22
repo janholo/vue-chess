@@ -17,6 +17,7 @@ export class BoardState {
 export class GameState {
   fieldInfos: FieldInfo[] = [];
   boardState: BoardState = new BoardState([]);
+  oldPieceAndPosition?: [number, Piece];
   timerWhite: number = 0;
   timerBlack: number = 0;
   selectedPiece: number = -1;
@@ -33,6 +34,7 @@ export class GameState {
     this.turn = Color.White;
     this.isThinking = false;
     this.boardState = new BoardState(getInitialFields());
+    this.oldPieceAndPosition = undefined;
   }
 
   copy(): GameState {

@@ -38,6 +38,7 @@ export class ChessHelpers {
         return GameResult.Pending;
     }
     doMove(fieldId: number, gameState: GameState) {
+        gameState.oldPieceAndPosition = [gameState.selectedPiece, gameState.boardState.fields[gameState.selectedPiece]];
         movePiece(gameState.selectedPiece, fieldId, gameState.boardState);
         gameState.selectedPiece = -1;
         gameState.possibleMoves = [];
@@ -59,13 +60,25 @@ export class ChessHelpers {
 
         return GameResult.Pending;
     }
-    startBackgroundAi(gameState: GameState): GameResult {
-        let result = calculateBestMove(gameState);
-        let move = result[0];
-        let tempResult = this.clickFieldRaw(move.source, gameState);
-        if(tempResult != GameResult.Pending) {
-            alert('WTF');
+    startBackgroundAi(gameState: GameState, setResult: (r: GameResult) => void): void {
+        if(gameState.isThinking) {
+            return;
         }
-        return this.clickFieldRaw(move.target, gameState);
+        gameState.isThinking = true;
+
+        setTimeout(() => {
+            let bestMove = calculateBestMove(gameState);
+            let move = bestMove[0];
+            let tempResult = this.clickFieldRaw(move.source, gameState);
+            if(tempResult != GameResult.Pending) {
+                alert('WTF');
+            }
+            
+            let result = this.clickFieldRaw(move.target, gameState);
+            if(result != GameResult.Pending) {
+                setResult(result);
+            }
+            gameState.isThinking = false;
+        }, 100);
     }
 }

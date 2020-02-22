@@ -9,7 +9,7 @@
         v-bind:class="{ 'text-color-white': IsWhiteBackground(), 'text-color-black': !IsWhiteBackground() }"
       >{{fieldInfo.name}}</text>
     </svg>
-    <ChessPiece v-bind:piece="field" class="fixed-pos" v-bind:selected="selected" />
+    <ChessPiece v-bind:piece="field" v-bind:isShadow="isShadow" class="fixed-pos" v-bind:selected="selected" />
     <svg v-if="possible && field == 0" class="fixed-pos" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45">
       <circle cx="22.5" cy="22.5" r="7" class="move-possible"/>
     </svg>
@@ -33,6 +33,7 @@ import { isSameColor } from '@/chessRules';
 export default class ChessField extends Vue {
   @Prop() private fieldInfo!: FieldInfo;
   @Prop() private field!: Piece;
+  @Prop() private isShadow!: boolean;
   @Prop() private selected!: boolean;
   @Prop() private possible!: boolean;
   @Prop() private clickable!: boolean;

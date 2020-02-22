@@ -2,7 +2,11 @@
   <div>
     <div class="border">
       <div class="info-grid">
-        <button v-on:click="onClickMove()" :disabled="!isBlackTurn() || isThinking()" class="move-button shadow">{{isThinking() ? "Thinking" : "Move"}}</button>
+        <button
+          v-on:click="onClickMove()"
+          :disabled="!isBlackTurn() || isThinking()"
+          class="move-button shadow"
+        >{{isThinking() ? "Thinking" : "Move"}}</button>
         <ChessPiece
           v-for="(p, k) in whiteTakenPieces()"
           v-bind:key="k"
@@ -18,6 +22,7 @@
           v-bind:key="k"
           v-bind:field="p[0]"
           v-bind:fieldInfo="p[1]"
+          v-bind:isShadow="p[2]"
           v-bind:possible="gameState.possibleMoves.includes(k)"
           v-bind:selected="k === gameState.selectedPiece"
           v-bind:clickable="isClickable(k)"
@@ -37,7 +42,7 @@
       </div>
     </div>
     <div v-if="IsDraw() || IsWhiteWin() || IsBlackWin()" class="modal">
-       <div class="modal-content">
+      <div class="modal-content">
         <span class="close" v-on:click="CloseModal()">&times;</span>
         <p v-if="IsDraw()">Game ended in a DRAW.</p>
         <p v-if="IsWhiteWin()">White WIN</p>
@@ -54,7 +59,7 @@ import { Color, GameResult, Piece, GameState } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
 import { ChessHelpers } from "@/chessHelpers";
-import { isSameColor } from '../chessRules';
+import { isSameColor } from "../chessRules";
 
 @Component({
   components: {
@@ -67,7 +72,18 @@ export default class ChessBoard extends Vue {
   chessHelper = new ChessHelpers();
   gameResult: GameResult = GameResult.Pending;
   getFieldAndFieldInfo() {
-    let zipped = this.gameState.boardState.fields.map((x, i) => [x, this.gameState.fieldInfos[i]]);
+    console.log(this.gameState.oldPieceAndPosition);
+    let zipped = this.gameState.boardState.fields.map((x, i) => {
+      let old = this.gameState.oldPieceAndPosition;
+      let oldPosition = old == undefined ? -1 : old[0];
+      if (oldPosition === i) {
+        // old piece
+        let oldPiece = old == undefined ? Piece.Empty : old[1];
+        return [oldPiece, this.gameState.fieldInfos[i], true];
+      }
+      // normal piece
+      return [x, this.gameState.fieldInfos[i], false];
+    });
     return zipped;
   }
   IsDraw() {
@@ -89,17 +105,13 @@ export default class ChessBoard extends Vue {
     this.gameResult = GameResult.Pending;
   }
   whiteTakenPieces() {
-    let whitePieces = this.gameState.boardState.takenPieces.filter(
-      p => p < 0
-    );
+    let whitePieces = this.gameState.boardState.takenPieces.filter(p => p < 0);
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });
   }
   blackTakenPieces() {
-    let whitePieces = this.gameState.boardState.takenPieces.filter(
-      p => p > 0
-    );
+    let whitePieces = this.gameState.boardState.takenPieces.filter(p => p > 0);
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });
@@ -117,11 +129,19 @@ export default class ChessBoard extends Vue {
   }
   onClick(id: number) {
     this.gameResult = this.chessHelper.clickField(id, this.gameState);
+
+    if (
+      this.gameResult === GameResult.Pending &&
+      this.gameState.turn === Color.Black
+    ) {
+      this.onClickMove();
+    }
   }
   onClickMove() {
-    this.gameState.isThinking = true;
-    this.gameResult = this.chessHelper.startBackgroundAi(this.gameState);
-    this.gameState.isThinking = false;
+    this.chessHelper.startBackgroundAi(
+      this.gameState,
+      r => (this.gameResult = r)
+    );
   }
   isClickable(id: number) {
     if (id === this.gameState.selectedPiece) {
@@ -135,7 +155,10 @@ export default class ChessBoard extends Vue {
       return true;
     }
 
-    return isSameColor(this.gameState.boardState.fields[id], this.gameState.turn);
+    return isSameColor(
+      this.gameState.boardState.fields[id],
+      this.gameState.turn
+    );
   }
 }
 </script>
@@ -183,14 +206,15 @@ export default class ChessBoard extends Vue {
 }
 
 .move-button:active {
-  transform: translateX(0.2vmin) translateY(0.2vmin)
+  transform: translateX(0.2vmin) translateY(0.2vmin);
 }
 
 .move-button:disabled {
   background-color: grey;
+  transform: none;
 }
 
- /* The Modal (background) */
+/* The Modal (background) */
 .modal {
   position: fixed; /* Stay in place */
   z-index: 1; /* Sit on top */
@@ -199,8 +223,8 @@ export default class ChessBoard extends Vue {
   width: 100%; /* Full width */
   height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
-  background-color: rgb(0,0,0); /* Fallback color */
-  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  background-color: rgb(0, 0, 0); /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
 }
 
 /* Modal Content/Box */
@@ -232,5 +256,5 @@ export default class ChessBoard extends Vue {
   color: black;
   text-decoration: none;
   cursor: pointer;
-} 
+}
 </style>
