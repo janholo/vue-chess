@@ -1,7 +1,6 @@
-import { Color, Kind, Piece, GameState, GameResult } from './types';
-import { calcPossibleMoves, isOpponentInCheck, movePiece, getBackgroundColor, getCoord, checkGameState, isSameColor, otherColor } from './chessRules'
+import { Color, GameState, GameResult } from './types';
+import { calcPossibleMoves, movePiece, checkGameState, isSameColor, otherColor } from './chessRules'
 import { calculateBestMove } from './chessAi';
-var cloneDeep = require('lodash.clonedeep');
 
 export class ChessHelpers {
     timerId: number = 0;
@@ -67,7 +66,7 @@ export class ChessHelpers {
         gameState.isThinking = true;
 
         setTimeout(() => {
-            let bestMove = calculateBestMove(gameState);
+            let bestMove = calculateBestMove(gameState.boardState);
             let move = bestMove[0];
             let tempResult = this.clickFieldRaw(move.source, gameState);
             if(tempResult != GameResult.Pending) {

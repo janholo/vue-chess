@@ -68,11 +68,11 @@ export function calculateBestHalfMove(turn: Color, boardState: BoardState, depth
     return bestMove;
 }
 
-export function calculateBestMove(gameState: GameState): [Move, number] {
+export function calculateBestMove(boardState: BoardState): [Move, number] {
     let startTime = performance.now();
     moveCount = 0;
 
-    let selectedMove = calculateBestHalfMove(Color.Black, gameState.boardState, 4, -99999, 99999);
+    let selectedMove = calculateBestHalfMove(Color.Black, boardState, 4, -99999, 99999);
 
     let endTime = performance.now();
 

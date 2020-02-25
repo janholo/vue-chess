@@ -1,4 +1,4 @@
-import { Color, Kind, Piece, GameState, GameResult, FieldInfo, BoardState } from './types';
+import { Color, Kind, Piece, GameResult, FieldInfo, BoardState } from './types';
 var cloneDeep = require('lodash.clonedeep');
 
 export function otherColor(color: Color): Color {
