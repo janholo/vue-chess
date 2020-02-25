@@ -72,7 +72,6 @@ export default class ChessBoard extends Vue {
   chessHelper = new ChessHelpers();
   gameResult: GameResult = GameResult.Pending;
   getFieldAndFieldInfo() {
-    console.log(this.gameState.oldPieceAndPosition);
     let zipped = this.gameState.boardState.fields.map((x, i) => {
       let old = this.gameState.oldPieceAndPosition;
       let oldPosition = old == undefined ? -1 : old[0];

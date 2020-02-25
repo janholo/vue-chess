@@ -13,9 +13,3 @@ npm run build
 ```bash
 npm run lint
 ```
-
-## State Machine
-
-WhiteTurn -> Draw | Win | BlackTurn
-
-BlackTurn -> Draw | BlackWin | WhiteTurn

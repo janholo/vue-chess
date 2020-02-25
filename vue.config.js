@@ -1,3 +1,6 @@
 module.exports = {
-    publicPath: './'
+  publicPath: './',
+  configureWebpack: {
+    entry: './src/bootstrap.js'
   }
+}

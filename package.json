@@ -8,6 +8,7 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "rust-chess": "file:rust-chess/pkg",
     "@types/lodash": "^4.14.149",
     "core-js": "^3.6.2",
     "lodash.clonedeep": "^4.5.0",
