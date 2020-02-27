@@ -1,4 +1,5 @@
-import { calcFieldInfos, getInitialFields } from './chessRules';
+import { getInitialFields } from './chessRules';
+import { calcFieldInfos, FieldInfo } from './wasmWrapper';
 
 var cloneDeep = require('lodash.clonedeep');
 
@@ -40,11 +41,6 @@ export class GameState {
   copy(): GameState {
     return cloneDeep(this);
   }
-}
-
-export class FieldInfo {
-  background: Color = Color.White;
-  name: string = "A8";
 }
 
 export enum Piece {

@@ -1,6 +1,6 @@
 import { GameState, Color, Kind, GameResult, Move, Piece, BoardState } from './types';
-import { getFieldIdsOfPieces, calcPossibleMoves, getCoordFromId, movePiece, checkGameState, getKind, otherColor, isSameColor } from './chessRules';
-
+import { getFieldIdsOfPieces, calcPossibleMoves, movePiece, checkGameState, getKind, otherColor, isSameColor } from './chessRules';
+import { get_coord_from_id } from "rust-chess"
 let moveCount = 0;
 
 function orderMoves(moves: Move[], boardState: BoardState): Move[] {
@@ -76,7 +76,7 @@ export function calculateBestMove(boardState: BoardState): [Move, number] {
 
     let endTime = performance.now();
 
-    console.log("Selected move: " + getCoordFromId(selectedMove[0].source) + " -> " + getCoordFromId(selectedMove[0].target))
+    console.log("Selected move: " + get_coord_from_id(selectedMove[0].source) + " -> " + get_coord_from_id(selectedMove[0].target))
     console.log("Time: " + (endTime - startTime) + " ms");
     console.log("Move Count: " + moveCount);
 

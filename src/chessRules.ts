@@ -1,4 +1,4 @@
-import { Color, Kind, Piece, GameResult, FieldInfo, BoardState } from './types';
+import { Color, Kind, Piece, GameResult, BoardState } from './types';
 var cloneDeep = require('lodash.clonedeep');
 
 export function otherColor(color: Color): Color {
@@ -242,30 +242,7 @@ export function movePiece(from: number, to: number, boardState: BoardState) {
 
     boardState.fields[to] = movePiece;
 }
-export function getCoord(x: number, y: number): string {
-    let map = ["A", "B", "C", "D", "E", "F", "G", "H"];
-    return map[x] + (y + 1).toString();
-}
-export function getCoordFromId(fieldId: number) {
-    return getCoord(fieldId % 8, 7 - Math.floor(fieldId / 8));
-}
-export function getBackgroundColor(x: number, y: number): Color {
-    if (y % 2 != 0) {
-        return x % 2 === 0 ? Color.White : Color.Black;
-    }
-    else {
-        return x % 2 === 0 ? Color.Black : Color.White;
-    }
-}
-export function calcFieldInfos(): FieldInfo[] {
-    let field: FieldInfo[] = []
-    for (let y = 7; y >= 0; y--) {
-        for (let x = 0; x < 8; x++) {
-            field.push({ background: getBackgroundColor(x, y), name: getCoord(x, y) })
-        }
-    }
-    return field;
-}
+
 export function checkGameState(boardState: BoardState, turn: Color): GameResult {
     let check = isOpponentInCheck(turn, boardState);
 
