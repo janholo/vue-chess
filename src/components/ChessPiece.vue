@@ -260,8 +260,8 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Kind, Color, Piece } from "@/types";
-import { isSameColor, getKind } from '@/chessRules';
+import { getKind } from '@/chessRules';
+import { is_same_color, Color, Kind, Piece } from "rust-chess";
 
 @Component
 export default class ChessPiece extends Vue {
@@ -270,10 +270,10 @@ export default class ChessPiece extends Vue {
   @Prop() private isShadow!: boolean;
 
   IsBlack() {
-    return isSameColor(this.piece, Color.Black);
+    return is_same_color(this.piece, Color.Black);
   }
   IsWhite() {
-    return isSameColor(this.piece, Color.White);
+    return is_same_color(this.piece, Color.White);
   }
   IsKing() {
     return getKind(this.piece) === Kind.King;

@@ -1,6 +1,7 @@
-import { Color, GameState, GameResult } from './types';
-import { calcPossibleMoves, movePiece, checkGameState, isSameColor, otherColor } from './chessRules'
+import { GameState } from './types';
+import { calcPossibleMoves, movePiece, checkGameState } from './chessRules'
 import { calculateBestMove } from './chessAi';
+import { is_same_color, other_color, Color, GameResult } from "rust-chess"
 
 export class ChessHelpers {
     timerId: number = 0;
@@ -23,7 +24,7 @@ export class ChessHelpers {
 
         // if a piece of the person whos turn it is -> select
         let p = gameState.boardState.fields[fieldId]
-        if (isSameColor(p, gameState.turn)) {
+        if (is_same_color(p, gameState.turn)) {
             gameState.selectedPiece = fieldId;
             gameState.possibleMoves = calcPossibleMoves(fieldId, gameState.boardState);
             return GameResult.Pending;
@@ -45,7 +46,7 @@ export class ChessHelpers {
 
         let result = checkGameState(gameState.boardState, gameState.turn);
         if(result !== GameResult.Pending) {
-            gameState.turn = otherColor(gameState.turn);
+            gameState.turn = other_color(gameState.turn);
             return result;
         }
 

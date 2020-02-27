@@ -21,10 +21,8 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Color, Piece } from "@/types";
 import ChessPiece from "./ChessPiece.vue";
-import { isSameColor } from '@/chessRules';
-import * as wasm from "rust-chess";
+import { is_same_color, Piece, Color } from "rust-chess";
 import { FieldInfo } from '@/wasmWrapper';
 
 @Component({
@@ -40,10 +38,10 @@ export default class ChessField extends Vue {
   @Prop() private possible!: boolean;
   @Prop() private clickable!: boolean;
   IsWhiteBackground() {
-    return this.fieldInfo.background == "White";
+    return this.fieldInfo.background == Color.Black;
   }
   IsWhitePiece() {
-    return isSameColor(this.field, Color.White);
+    return is_same_color(this.field, Color.White);
   }
 }
 </script>

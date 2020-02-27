@@ -2,17 +2,21 @@ import * as wasm from "rust-chess";
 
 wasm.init();
 
-export type Color = "White" | "Black";
 export type FieldInfo = {
-  background: Color,
+  background: wasm.Color,
   name: string
-}
-type FieldInfos = {
- infos: FieldInfo[];
 }
 
 export function calcFieldInfos() {
-    let f = wasm.calc_field_infos_js() as FieldInfos;
-    return f.infos
+    let fields = wasm.calc_field_infos_js();
+    for (const info of fields.infos) {
+        if(info.background === "White") {
+            info.background = wasm.Color.White;
+        } else {
+            info.background = wasm.Color.Black;
+        }
+    }
+
+    return fields.infos as FieldInfo[]
 }
 

@@ -1,5 +1,6 @@
 import { getInitialFields } from './chessRules';
 import { calcFieldInfos, FieldInfo } from './wasmWrapper';
+import { Piece, Color } from "rust-chess"
 
 var cloneDeep = require('lodash.clonedeep');
 
@@ -41,44 +42,6 @@ export class GameState {
   copy(): GameState {
     return cloneDeep(this);
   }
-}
-
-export enum Piece {
-  WhiteKing = -1,
-  WhiteQueen = -2,
-  WhiteRook = -3,
-  WhiteBishop = -4,
-  WhiteKnight = -5,
-  WhitePawn = -6,
-  Empty = 0,
-  BlackKing = 1,
-  BlackQueen = 2,
-  BlackRook = 3,
-  BlackBishop = 4,
-  BlackKnight = 5,
-  BlackPawn = 6,
-}
-
-export enum Kind {
-    None = 0,
-    King = 1,
-    Queen = 2,
-    Rook = 3,
-    Bishop = 4,
-    Knight = 5,
-    Pawn = 6
-  }
-  
-export enum Color {
-    Black = 0,
-    White = 1
-  }
-
-export enum GameResult {
-  Pending,
-  WhiteWin,
-  BlackWin,
-  Draw
 }
 
 export class Move {

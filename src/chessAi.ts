@@ -1,6 +1,6 @@
-import { GameState, Color, Kind, GameResult, Move, Piece, BoardState } from './types';
-import { getFieldIdsOfPieces, calcPossibleMoves, movePiece, checkGameState, getKind, otherColor, isSameColor } from './chessRules';
-import { get_coord_from_id } from "rust-chess"
+import { Move, BoardState } from './types';
+import { getFieldIdsOfPieces, calcPossibleMoves, movePiece, checkGameState, getKind } from './chessRules';
+import { get_coord_from_id, other_color, is_same_color, Color, Kind, GameResult, Piece } from "rust-chess"
 let moveCount = 0;
 
 function orderMoves(moves: Move[], boardState: BoardState): Move[] {
@@ -43,7 +43,7 @@ export function calculateBestHalfMove(turn: Color, boardState: BoardState, depth
         if (result === GameResult.Draw) {
             score = 0;
         } else if (depth > 1) {
-            let result = calculateBestHalfMove(otherColor(turn), newBoardState, depth - 1, alpha, beta);
+            let result = calculateBestHalfMove(other_color(turn), newBoardState, depth - 1, alpha, beta);
             score = result[1];
         } else {
             score = calcBoardValue(newBoardState);
@@ -175,7 +175,7 @@ function calcPieceValue(piece: Piece, position: number): number {
     if (piece === Piece.Empty) {
         return 0;
     }
-    if(isSameColor(piece, Color.Black)) {
+    if(is_same_color(piece, Color.Black)) {
         // mirror position around center
         let oldX = (position % 8);
         let oldY = (Math.floor(position / 8));

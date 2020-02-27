@@ -16,7 +16,8 @@ pub fn init() {
     utils::set_panic_hook();
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone)]
+#[wasm_bindgen]
+#[derive(Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub enum Color {
     Black,
     White
@@ -71,35 +72,99 @@ pub fn calc_field_infos_js() -> JsValue {
     JsValue::from_serde(&infos).unwrap()
 }
 
+#[wasm_bindgen]
+pub fn other_color(color: Color) -> Color {
+    if color == Color::Black {
+        Color::White
+    } else {
+        Color::Black
+    }
+}
 
-// #[wasm_bindgen]
-// pub fn calc_field_infos() -> [FieldInfo<'static>; 64] {
-//     let mut field: [FieldInfo; 64] = [FieldInfo { background: Color::Black, name: ""}; 64];
-//     for y in (0..8).rev() {
-//         for x in 0..8 {
-//             let i = (7-y) * 8 + x;
-//             field[i] = FieldInfo { background: get_background_color(x as u8, y as u8), name: get_coord(x as u8, y as u8) }
-//         }
-//     }
-//     field
-// }
+#[wasm_bindgen]
+pub fn get_color(piece: Piece) -> Option<Color> {
+    if piece == Piece::Empty {
+        None
+    } else if piece == Piece::BlackBishop ||
+        piece == Piece::BlackKing ||
+        piece == Piece::BlackKnight ||
+        piece == Piece::BlackPawn ||
+        piece == Piece::BlackQueen ||
+        piece == Piece::BlackRook {
+            Some(Color::Black)
+    } else {
+        Some(Color::White)
+    }
+}
 
-// #[wasm_bindgen]
-// pub enum Piece {
-//     WhiteKing,
-//     WhiteQueen,
-//     WhiteRook,
-//     WhiteBishop,
-//     WhiteKnight,
-//     WhitePawn,
-//     Empty,
-//     BlackKing,
-//     BlackQueen,
-//     BlackRook,
-//     BlackBishop,
-//     BlackKnight,
-//     BlackPawn,
-// }
+#[wasm_bindgen]
+pub fn is_same_color(piece: Piece, color: Color) -> bool {
+    let piece_color = get_color(piece);
+
+    match piece_color {
+        None => false,
+        Some(c) => c == color,
+    }
+}
+
+#[wasm_bindgen]
+pub fn is_other_color(piece: Piece, color: Color) -> bool {
+    let piece_color = get_color(piece);
+
+    match piece_color {
+        None => false,
+        Some(c) => c != color,
+    }
+}
+
+#[wasm_bindgen]
+pub fn is_same_color_or_empty(piece: Piece, color: Color) -> bool {
+    let piece_color = get_color(piece);
+
+    match piece_color {
+        None => true,
+        Some(c) => c == color,
+    } 
+}
+
+#[wasm_bindgen]
+#[derive(PartialEq)]
+pub enum Piece {
+    WhiteKing,
+    WhiteQueen,
+    WhiteRook,
+    WhiteBishop,
+    WhiteKnight,
+    WhitePawn,
+    Empty,
+    BlackKing,
+    BlackQueen,
+    BlackRook,
+    BlackBishop,
+    BlackKnight,
+    BlackPawn,
+}
+
+#[wasm_bindgen]
+#[derive(PartialEq)]
+pub enum Kind {
+    None,
+    King,
+    Queen,
+    Rook,
+    Bishop,
+    Knight,
+    Pawn
+}
+
+#[wasm_bindgen]
+#[derive(PartialEq)]
+pub enum GameResult {
+  Pending,
+  WhiteWin,
+  BlackWin,
+  Draw
+}
 
 // #[wasm_bindgen]
 // pub fn get_pieces() -> [Piece; 2] {

@@ -1,39 +1,7 @@
-import { Color, Kind, Piece, GameResult, BoardState } from './types';
+import { BoardState } from './types';
 var cloneDeep = require('lodash.clonedeep');
+import {other_color, is_other_color, is_same_color_or_empty, is_same_color, Color, Kind, Piece, GameResult } from "rust-chess"
 
-export function otherColor(color: Color): Color {
-    return (color + 1) % 2;
-}
-
-export function isSameColor(piece: Piece, color: Color) {
-    if(piece > 0 && color === Color.Black) {
-        return true;
-    }
-    if(piece < 0 && color === Color.White) {
-        return true;
-    }
-    return false;
-}
-
-export function isOtherColor(piece: Piece, color: Color) {
-    if(piece > 0 && color === Color.White) {
-        return true;
-    }
-    if(piece < 0 && color === Color.Black) {
-        return true;
-    }
-    return false;
-}
-
-export function isSameColorOrEmpty(piece: Piece, color: Color) {
-    if(piece >= 0 && color === Color.Black) {
-        return true;
-    }
-    if(piece <= 0 && color === Color.White) {
-        return true;
-    }
-    return false;    
-}
 
 export function isOtherColorOrEmpty(piece: Piece, color: Color) {
     if(piece >= 0 && color === Color.White) {
@@ -73,7 +41,7 @@ export function isOpponentInCheck(color: Color, boardState: BoardState) {
             return false;
         }
         let moves = calcPossibleMovesRaw(i, boardState);
-        let colorKing = getPiece(otherColor(color), Kind.King)
+        let colorKing = getPiece(other_color(color), Kind.King)
         return moves.some(m => {
             let p = boardState.fields[m];
             return p === colorKing;
@@ -86,7 +54,7 @@ export function getFieldIdsOfPieces(color: Color, boardState: BoardState) {
 
     for (let fieldId = 0; fieldId < 64; fieldId++) {
         let piece = boardState.fields[fieldId];
-        if(isSameColor(piece, color)) {
+        if(is_same_color(piece, color)) {
             ids.push(fieldId);
         }
     }
@@ -137,7 +105,7 @@ export function calcPossibleMoves(fieldId: number, boardState: BoardState): numb
         
         movePiece(fieldId, m, newBoardState);
 
-        if(!isOpponentInCheck(otherColor(color), newBoardState)) {
+        if(!isOpponentInCheck(other_color(color), newBoardState)) {
             validMoves.push(m);
         }
     }
@@ -210,7 +178,7 @@ function getPawnMoves(fieldId: number, boardState: BoardState): number[] {
 function canTake(piece: number | undefined, turn: Color, boardState: BoardState) {
     if (piece != undefined) {
         let p = boardState.fields[piece]
-        if (isOtherColor(p, turn)) {
+        if (is_other_color(p, turn)) {
             return true;
         }
     }
@@ -247,7 +215,7 @@ export function checkGameState(boardState: BoardState, turn: Color): GameResult 
     let check = isOpponentInCheck(turn, boardState);
 
     let movesPossible = boardState.fields.some((f, i) => {
-        if(isSameColorOrEmpty(f, turn)) { 
+        if(is_same_color_or_empty(f, turn)) { 
             return false;
         }
         let moves = calcPossibleMoves(i, boardState);
@@ -255,7 +223,7 @@ export function checkGameState(boardState: BoardState, turn: Color): GameResult 
     });
 
     if(!movesPossible) {
-        turn = otherColor(turn);
+        turn = other_color(turn);
         if(check) {
             return turn === Color.White ? GameResult.BlackWin : GameResult.WhiteWin;
         } else {

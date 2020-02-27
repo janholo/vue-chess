@@ -55,11 +55,11 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { Color, GameResult, Piece, GameState } from "@/types";
+import { GameState } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
 import { ChessHelpers } from "@/chessHelpers";
-import { isSameColor } from "../chessRules";
+import { Color, GameResult, Piece, is_same_color } from "rust-chess";
 
 @Component({
   components: {
@@ -154,7 +154,9 @@ export default class ChessBoard extends Vue {
       return true;
     }
 
-    return isSameColor(
+  console.log(this.gameState.boardState.fields);
+
+    return is_same_color(
       this.gameState.boardState.fields[id],
       this.gameState.turn
     );
