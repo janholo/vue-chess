@@ -260,8 +260,7 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { getKind } from '@/chessRules';
-import { is_same_color, Color, Kind, Piece } from "rust-chess";
+import { is_same_color, Color, Kind, Piece, get_kind } from "rust-chess";
 
 @Component
 export default class ChessPiece extends Vue {
@@ -276,22 +275,22 @@ export default class ChessPiece extends Vue {
     return is_same_color(this.piece, Color.White);
   }
   IsKing() {
-    return getKind(this.piece) === Kind.King;
+    return get_kind(this.piece) === Kind.King;
   }
   IsQueen() {
-    return getKind(this.piece) === Kind.Queen;
+    return get_kind(this.piece) === Kind.Queen;
   }
   IsBishop() {
-    return getKind(this.piece) === Kind.Bishop;
+    return get_kind(this.piece) === Kind.Bishop;
   }
   IsRook() {
-    return getKind(this.piece) === Kind.Rook;
+    return get_kind(this.piece) === Kind.Rook;
   }
   IsPawn() {
-    return getKind(this.piece) === Kind.Pawn;
+    return get_kind(this.piece) === Kind.Pawn;
   }
   IsKnight() {
-    return getKind(this.piece) === Kind.Knight;
+    return get_kind(this.piece) === Kind.Knight;
   }
 }
 </script>

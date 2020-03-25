@@ -1,7 +1,6 @@
 import { GameState } from './types';
-import { calcPossibleMoves, movePiece, checkGameState } from './chessRules'
-import { calculateBestMove } from './chessAi';
 import { is_same_color, other_color, Color, GameResult } from "rust-chess"
+import { calcPossibleMoves, movePiece, checkGameState, calculateBestMove } from './wasmWrapper';
 
 export class ChessHelpers {
     timerId: number = 0;

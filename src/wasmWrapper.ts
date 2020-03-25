@@ -20,3 +20,40 @@ export function calcFieldInfos() {
     return fields.infos as FieldInfo[]
 }
 
+export type BoardState = {
+    fields: [wasm.Piece],
+    takenPieces: [wasm.Piece],
+}
+
+function castPiece(pieceString: any): wasm.Piece {
+    // Todo
+    return wasm.Piece.BlackBishop;
+}
+
+export function getInitialBoard() {
+    let boardStateWasm = wasm.get_initial_board_js();
+    let boardState: BoardState = {
+        fields: boardStateWasm.fields.map(castPiece),
+        takenPieces: boardStateWasm.takenPieces.map(castPiece),
+    }
+
+    return boardState
+}
+
+export function calcPossibleMoves(fieldId: number, boardState: BoardState): number[] {
+    // Todo
+    return []
+}
+
+export function movePiece(from: number, to: number, boardState: BoardState) {
+    // Todo
+}
+
+export function checkGameState(boardState: BoardState, turn: wasm.Color) {
+    // Todo
+    return wasm.GameResult.Pending;
+}
+
+export function calculateBestMove(boardState: BoardState): [wasm.Move, number] {
+    return [wasm.new_move(0,1), 0];
+}

@@ -1,6 +1,5 @@
-import { Move, BoardState } from './types';
-import { getFieldIdsOfPieces, calcPossibleMoves, movePiece, checkGameState, getKind } from './chessRules';
-import { get_coord_from_id, other_color, is_same_color, Color, Kind, GameResult, Piece } from "rust-chess"
+import { get_coord_from_id, other_color, is_same_color, Color, Kind, GameResult, Piece, Move, new_move } from "rust-chess"
+import { BoardState } from './wasmWrapper';
 let moveCount = 0;
 
 function orderMoves(moves: Move[], boardState: BoardState): Move[] {
@@ -11,7 +10,7 @@ function orderMoves(moves: Move[], boardState: BoardState): Move[] {
     return sortedMoves.map(m => m[0]);
 }
 
-export function calculateBestHalfMove(turn: Color, boardState: BoardState, depth: number, alpha: number, beta: number): [Move, number] {
+function calculateBestHalfMove(turn: Color, boardState: BoardState, depth: number, alpha: number, beta: number): [Move, number] {
     let validMoves = allMoves(boardState, turn);
 
     let orderedMoves = orderMoves(validMoves, boardState);
@@ -99,7 +98,7 @@ function allMoves(boardState: BoardState, color: Color) {
 
     let allMoves = pieces.flatMap(fieldId => {
         let moves = calcPossibleMoves(fieldId, boardState);
-        return moves.map(m => new Move(fieldId, m));
+        return moves.map(m => new_move(fieldId, m));
     });
 
     return allMoves;
@@ -205,7 +204,7 @@ function calcPieceValue(piece: Piece, position: number): number {
     throw new RangeError("Unknown Kind: " + kind);
 }
 
-export function calcBoardValue(boardState: BoardState): number {
+function calcBoardValue(boardState: BoardState): number {
     return boardState.fields.map((p, i) => {
         return Math.sign(p) * calcPieceValue(p, i);
     }).reduce((prev, current) => prev + current, 0);
