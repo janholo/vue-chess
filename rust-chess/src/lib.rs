@@ -1,6 +1,8 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
+use std::cmp;
+use web_sys::console;
 
 #[macro_use]
 extern crate serde_derive;
@@ -218,6 +220,7 @@ pub enum GameResult {
 }
 
 #[wasm_bindgen]
+#[derive(PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub struct Move {
     pub source: u8,
     pub target: u8,
@@ -288,6 +291,14 @@ fn get_initial_fields() -> Vec<Piece> {
 }
 
 #[wasm_bindgen]
+pub fn calc_possible_moves_js(field_id: u8, board: &JsValue) -> JsValue {
+    let b: BoardState = board.into_serde().unwrap();
+    let moves = calc_possible_moves(field_id, &b);
+
+    JsValue::from_serde(&moves).unwrap()
+}
+
+#[wasm_bindgen]
 pub fn get_initial_board_js() -> JsValue {
     let board = get_initial_board();
 
@@ -354,7 +365,8 @@ fn calc_possible_moves_raw(field_id: u8, board: &BoardState) -> Vec<u8> {
     let mut moves = Vec::new();
 
     if kind == Kind::Pawn {
-        moves.append(&mut get_pawn_moves(field_id, board));
+        let mut pawn_moves = get_pawn_moves(field_id, board);
+        moves.append(&mut pawn_moves);
     }
     if kind == Kind::Bishop || kind == Kind::Queen {
         moves.append(&mut get_standard_moves(field_id, board, DIAGONAL_DIRS.to_vec(), 8));
@@ -379,7 +391,7 @@ fn get_pawn_moves(field_id: u8, board: &BoardState) -> Vec<u8> {
     let color = get_color(piece).unwrap();
 
     //normal move forward
-    let forward_offset: i8 = if color == Color::White { 1 } else { -1 };
+    let forward_offset: i8 = if color == Color::White { -1 } else { 1 };
     let forward_id = (field_id as i8) + 8 * forward_offset;
     if board.fields[forward_id as usize] == Piece::Empty {
         moves.push(forward_id as u8);
@@ -463,9 +475,20 @@ fn get_position(field_id: u8, x: i8, y: i8) -> Option<u8> {
     }
 }
 
+#[wasm_bindgen]
+pub fn move_piece_js(from: u8, to: u8, board: &JsValue) -> JsValue {
+    let mut b: BoardState = board.into_serde().unwrap();
+    
+    move_piece(from, to, &mut b);
+
+    JsValue::from_serde(&b).unwrap()
+}
+
 fn move_piece(from: u8, to: u8, board: &mut BoardState) {
     let mut piece = board.fields[from as usize];
     board.fields[from as usize] = Piece::Empty;
+    // console::log_1(&"Piece".into());
+    // console::log_1(&JsValue::from_serde(&piece).unwrap());
     // add "to" piece to taken pieces
     let old_piece = board.fields[to as usize];
     if old_piece != Piece::Empty {
@@ -481,7 +504,18 @@ fn move_piece(from: u8, to: u8, board: &mut BoardState) {
         piece = Piece::BlackQueen;
     }
 
+    // console::log_1(&from.into());
+    // console::log_1(&to.into());
     board.fields[to as usize] = piece;
+    // console::log_1(&JsValue::from_serde(&board.fields[to as usize]).unwrap());
+}
+
+#[wasm_bindgen]
+pub fn check_game_state_js(board: &JsValue, turn: Color) -> GameResult {
+    let b: BoardState = board.into_serde().unwrap();
+    let result = check_game_state(&b, turn);
+
+    result
 }
 
 fn check_game_state(board: &BoardState, turn: Color) -> GameResult {
@@ -514,7 +548,7 @@ fn check_game_state(board: &BoardState, turn: Color) -> GameResult {
 
 //AI
 
-fn order_moves(moves: Vec<Move>, board: BoardState) -> Vec<Move> {
+fn order_moves(moves: Vec<Move>, board: &BoardState) -> Vec<Move> {
     let mut moves_and_values: Vec<(Move, i32)> = moves.into_iter().map(|m| {
         let target_value = calc_piece_value(board.fields[m.target as usize], m.target);
         let source_value = calc_piece_value(board.fields[m.source as usize], m.source);
@@ -635,18 +669,18 @@ fn calc_piece_value(piece: Piece, position: u8) -> i32 {
     }
 }
 
-fn calc_board_value(board: BoardState) -> i32 {
+fn calc_board_value(board: &BoardState) -> i32 {
     board.fields.iter().enumerate().map(|(i, &p)| {
         let sign = if is_same_color(p, Color::White) { 1 } else { -1 };
         return sign * calc_piece_value(p, i as u8);
     }).sum()
 }
 
-fn all_moves(boardState: &BoardState, color: Color) -> Vec<Move> {
-    let pieces = get_field_ids_of_pieces(color, boardState);
+fn all_moves(board: &BoardState, color: Color) -> Vec<Move> {
+    let pieces = get_field_ids_of_pieces(color, board);
 
     let all_moves = pieces.into_iter().flat_map(|field_id| {
-        let moves = calc_possible_moves(field_id, boardState);
+        let moves = calc_possible_moves(field_id, board);
         wrap_moves(moves, field_id)
     }).collect();
 
@@ -665,17 +699,90 @@ fn do_ai_move(source: u8, target: u8, board: &mut BoardState, turn: Color) -> Ga
     result
 }
 
-fn calculate_best_move(boardState: BoardState) -> (Move, u8) {
-    //let startTime = performance.now();
+#[wasm_bindgen]
+pub fn calculate_best_move_js(board: &JsValue) -> Move {
+    let b: BoardState = board.into_serde().unwrap();
+    let result = calculate_best_move(&b);
+
+    result.0
+}
+
+fn calculate_best_move(board: &BoardState) -> (Move, i32) {
+    let window = web_sys::window().expect("should have a window in this context");
+    let performance = window
+        .performance()
+        .expect("performance should be available");
+
+    let start = performance.now();
     //moveCount = 0;
 
-    let selectedMove = calculate_best_half_move(Color::Black, boardState, 4, -99999, 99999);
+    let selected_move = calculate_best_half_move(Color::Black, board, 4, -99999, 99999);
 
-    //let endTime = performance.now();
+    let end = performance.now();
 
     // console.log("Selected move: " + get_coord_from_id(selectedMove[0].source) + " -> " + get_coord_from_id(selectedMove[0].target))
-    // console.log("Time: " + (endTime - startTime) + " ms");
+    console::log_2(&"Time: {} ms".into(), &(end - start).into());
     // console.log("Move Count: " + moveCount);
 
-    return selectedMove;
+    return selected_move;
+}
+
+fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: i32, _beta: i32) -> (Move, i32) {
+    let mut alpha = _alpha;
+    let mut beta = _beta; 
+    
+    let valid_moves = all_moves(board, turn);
+
+    let ordered_moves = order_moves(valid_moves, board);
+
+    // black turn -> search highest possible score
+    // white turn -> search lowest possible score
+    let mut best_move: (Move, i32) = (ordered_moves[0], if turn == Color::Black { -99999 } else { 99999 });
+
+    for m in ordered_moves {
+        // do move
+        let mut new_board_state = board.clone();
+        let result = do_ai_move(m.source, m.target, &mut new_board_state, turn);
+        //moveCount += 1;
+        if result == GameResult::WhiteWin {
+            if turn == Color::Black {
+                continue;
+            } else {
+                return (m, -99999);
+            }
+        }
+        if result == GameResult::BlackWin {
+            if turn == Color::Black {
+                return (m, 99999);
+            } else {
+                continue;
+            }
+        }
+        let score;
+        if result == GameResult::Draw {
+            score = 0;
+        } else if depth > 1 {
+            let result = calculate_best_half_move(other_color(turn), &new_board_state, depth - 1, alpha, beta);
+            score = result.1;
+        } else {
+            score = calc_board_value(&new_board_state);
+        }
+        if turn == Color::Black {
+            if score > best_move.1 {
+                best_move = (m, score);
+            }
+            alpha = cmp::max(alpha, best_move.1)
+        } else {
+            if score < best_move.1 {
+                best_move = (m, score);
+            }
+            beta = cmp::min(beta, best_move.1)
+        }
+
+        if alpha >= beta {
+            //console.log("cutoff")
+            break;
+        }
+    }
+    return best_move;
 }

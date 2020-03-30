@@ -10,10 +10,10 @@
       >{{fieldInfo.name}}</text>
     </svg>
     <ChessPiece v-bind:piece="field" v-bind:isShadow="isShadow" class="fixed-pos" v-bind:selected="selected" />
-    <svg v-if="possible && field == 0" class="fixed-pos" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45">
+    <svg v-if="possible && IsEmpty()" class="fixed-pos" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45">
       <circle cx="22.5" cy="22.5" r="7" class="move-possible"/>
     </svg>
-    <svg v-if="possible && field != 0" class="fixed-pos" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45">
+    <svg v-if="possible && !IsEmpty()" class="fixed-pos" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 45 45">
       <rect x="1.8" y="-30" width="60" height="60" style="fill:transparent;stroke-width:11px" class="move-possible-rect" />
     </svg>
   </div>
@@ -42,6 +42,9 @@ export default class ChessField extends Vue {
   }
   IsWhitePiece() {
     return is_same_color(this.field, Color.White);
+  }
+  IsEmpty() {
+    return this.field == Piece.Empty;
   }
 }
 </script>

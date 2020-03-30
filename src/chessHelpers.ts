@@ -38,7 +38,7 @@ export class ChessHelpers {
     }
     doMove(fieldId: number, gameState: GameState) {
         gameState.oldPieceAndPosition = [gameState.selectedPiece, gameState.boardState.fields[gameState.selectedPiece]];
-        movePiece(gameState.selectedPiece, fieldId, gameState.boardState);
+        gameState.boardState = movePiece(gameState.selectedPiece, fieldId, gameState.boardState);
         gameState.selectedPiece = -1;
         gameState.possibleMoves = [];
         clearInterval(this.timerId);
@@ -67,13 +67,12 @@ export class ChessHelpers {
 
         setTimeout(() => {
             let bestMove = calculateBestMove(gameState.boardState);
-            let move = bestMove[0];
-            let tempResult = this.clickFieldRaw(move.source, gameState);
+            let tempResult = this.clickFieldRaw(bestMove.source, gameState);
             if(tempResult != GameResult.Pending) {
                 alert('WTF');
             }
             
-            let result = this.clickFieldRaw(move.target, gameState);
+            let result = this.clickFieldRaw(bestMove.target, gameState);
             if(result != GameResult.Pending) {
                 setResult(result);
             }

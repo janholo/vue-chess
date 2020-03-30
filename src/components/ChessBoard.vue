@@ -104,13 +104,13 @@ export default class ChessBoard extends Vue {
     this.gameResult = GameResult.Pending;
   }
   whiteTakenPieces() {
-    let whitePieces = this.gameState.boardState.takenPieces.filter(p => p < 0);
+    let whitePieces = this.gameState.boardState.takenPieces.filter(p => is_same_color(p, Color.White));
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });
   }
   blackTakenPieces() {
-    let whitePieces = this.gameState.boardState.takenPieces.filter(p => p > 0);
+    let whitePieces = this.gameState.boardState.takenPieces.filter(p => is_same_color(p, Color.Black));
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });
@@ -153,8 +153,6 @@ export default class ChessBoard extends Vue {
     ) {
       return true;
     }
-
-  console.log(this.gameState.boardState.fields);
 
     return is_same_color(
       this.gameState.boardState.fields[id],
