@@ -20,7 +20,7 @@ jobs:
         cd rust-chess
         wasm-pack build
         cd ..
-        npm install
+        npm ci
         npm run build
     - name: Deploy to Github Pages
       uses: JamesIves/github-pages-deploy-action@releases/v3
