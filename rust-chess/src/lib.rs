@@ -669,10 +669,37 @@ fn calc_piece_value(piece: Piece, position: u8) -> i32 {
     }
 }
 
+fn calc_piece_value_without_table(piece: Piece, _position: u8) -> i32 {
+    let kind = get_kind(piece);
+    match kind {
+        Kind::None => {
+            0
+        }
+        Kind::Pawn => {
+            100
+        }
+        Kind::Bishop => {
+            300
+        }
+        Kind::Knight => {
+            300
+        }
+        Kind::Rook => {
+            500
+        }
+        Kind::Queen => {
+            900
+        }
+        Kind::King => {
+            0
+        }
+    }
+}
+
 fn calc_board_value(board: &BoardState) -> i32 {
     board.fields.iter().enumerate().map(|(i, &p)| {
         let sign = if is_same_color(p, Color::White) { 1 } else { -1 };
-        return sign * calc_piece_value(p, i as u8);
+        return sign * calc_piece_value_without_table(p, i as u8);
     }).sum()
 }
 
@@ -694,9 +721,7 @@ fn wrap_moves(moves: Vec<u8>, field_id: u8) -> Vec<Move> {
 fn do_ai_move(source: u8, target: u8, board: &mut BoardState, turn: Color) -> GameResult {
     move_piece(source, target, board);
 
-    let result = check_game_state(board, turn);
-
-    result
+    check_game_state(board, turn)
 }
 
 #[wasm_bindgen]
@@ -716,12 +741,12 @@ fn calculate_best_move(board: &BoardState) -> (Move, i32) {
     let start = performance.now();
     //moveCount = 0;
 
-    let selected_move = calculate_best_half_move(Color::Black, board, 4, -99999, 99999);
+    let selected_move = calculate_best_half_move(Color::Black, board, 2, -99999, 99999);
 
     let end = performance.now();
 
     // console.log("Selected move: " + get_coord_from_id(selectedMove[0].source) + " -> " + get_coord_from_id(selectedMove[0].target))
-    console::log_2(&"Time: {} ms".into(), &(end - start).into());
+    console::log_2(&"Time: ${} ms".into(), &(end - start).into());
     // console.log("Move Count: " + moveCount);
 
     return selected_move;
@@ -741,6 +766,7 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
 
     for m in ordered_moves {
         // do move
+        console::log_3(&"Try move".into(), &m.source.into(), &m.target.into());
         let mut new_board_state = board.clone();
         let result = do_ai_move(m.source, m.target, &mut new_board_state, turn);
         //moveCount += 1;
@@ -759,14 +785,17 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
             }
         }
         let score;
+        console::log_2(&"Depth".into(), &depth.into());
         if result == GameResult::Draw {
             score = 0;
         } else if depth > 1 {
+            console::log_1(&"Go deeper".into());
             let result = calculate_best_half_move(other_color(turn), &new_board_state, depth - 1, alpha, beta);
             score = result.1;
         } else {
-            score = calc_board_value(&new_board_state);
+            score = -calc_board_value(&new_board_state);
         }
+        console::log_2(&"Score".into(), &score.into());
         if turn == Color::Black {
             if score > best_move.1 {
                 best_move = (m, score);
@@ -784,5 +813,8 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
             break;
         }
     }
+
+    console::log_4(&"Selected move".into(), &best_move.0.source.into(), &best_move.0.target.into(),  &best_move.1.into());
+
     return best_move;
 }
