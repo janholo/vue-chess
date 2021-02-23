@@ -7,6 +7,9 @@ use web_sys::console;
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate bitflags;
+
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -16,6 +19,24 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 pub fn init() {
     utils::set_panic_hook();
+}
+
+bitflags! {
+    struct Piece: u8 {
+        const PAWN = 1;
+        const PUBLIC_FLAG_RESET = 2;
+        const NONCE_PRESENT = 4;
+        const ID_PRESENT = 8;
+        const PKT_NUM_LEN_4 = 16;
+        const PKT_NUM_LEN_2 = 32;
+        const PKT_NUM_LEN_1 = 64;
+        const MULTIPATH = 128;
+    }
+}
+
+pub fn get_coord(x: u8, y: u8) -> u8 {
+    let flag = Piece::PUBLIC_FLAG_VERSION | Piece::PUBLIC_FLAG_RESET;
+    flag
 }
 
 #[wasm_bindgen]
@@ -93,6 +114,15 @@ pub fn is_same_color(piece: Piece, color: Color) -> bool {
     }
 }
 
+pub fn is_same_color_b(piece: &Piece, color: Color) -> bool {
+    let piece_color = get_color_b(&piece);
+
+    match piece_color {
+        None => false,
+        Some(c) => c == color,
+    }
+}
+
 #[wasm_bindgen]
 pub fn is_other_color(piece: Piece, color: Color) -> bool {
     let piece_color = get_color(piece);
@@ -144,6 +174,24 @@ pub fn get_piece(color: Color, kind: Kind) -> Piece {
 
 #[wasm_bindgen]
 pub fn get_color (piece: Piece) -> Option<Color> {
+    match piece {
+        Piece::WhitePawn => Some(Color::White),
+        Piece::WhiteBishop => Some(Color::White),
+        Piece::WhiteKnight => Some(Color::White),
+        Piece::WhiteKing => Some(Color::White),
+        Piece::WhiteQueen => Some(Color::White),
+        Piece::WhiteRook => Some(Color::White),
+        Piece::BlackPawn => Some(Color::Black),
+        Piece::BlackBishop => Some(Color::Black),
+        Piece::BlackKnight => Some(Color::Black),
+        Piece::BlackKing => Some(Color::Black),
+        Piece::BlackQueen => Some(Color::Black),
+        Piece::BlackRook => Some(Color::Black),
+        Piece::Empty => None,
+    }
+}
+
+pub fn get_color_b (piece: &Piece) -> Option<Color> {
     match piece {
         Piece::WhitePawn => Some(Color::White),
         Piece::WhiteBishop => Some(Color::White),
@@ -548,15 +596,15 @@ fn check_game_state(board: &BoardState, turn: Color) -> GameResult {
 
 //AI
 
-fn order_moves(moves: Vec<Move>, board: &BoardState) -> Vec<Move> {
+fn order_moves(moves: &Vec<Move>, board: &BoardState) -> Vec<Move> {
     let mut moves_and_values: Vec<(Move, i32)> = moves.into_iter().map(|m| {
         let target_value = calc_piece_value(board.fields[m.target as usize], m.target);
         let source_value = calc_piece_value(board.fields[m.source as usize], m.source);
-        (m, target_value - source_value)
+        (m.clone(), target_value - source_value)
     }).collect();
 
     moves_and_values.sort_unstable_by(|(_, v1), (_, v2)| {
-         v1.cmp(v2)
+         v2.cmp(v1)
     });
 
     return moves_and_values.into_iter().map(|(m, _v)| { m }).collect();
@@ -698,24 +746,38 @@ fn calc_piece_value_without_table(piece: Piece, _position: u8) -> i32 {
 
 fn calc_board_value(board: &BoardState) -> i32 {
     board.fields.iter().enumerate().map(|(i, &p)| {
-        let sign = if is_same_color(p, Color::White) { 1 } else { -1 };
+        let sign = if is_same_color(p, Color::Black) { 1 } else { -1 };
         return sign * calc_piece_value_without_table(p, i as u8);
     }).sum()
 }
 
 fn all_moves(board: &BoardState, color: Color) -> Vec<Move> {
-    let pieces = get_field_ids_of_pieces(color, board);
+    // let pieces = get_field_ids_of_pieces(color, board);
 
-    let all_moves = pieces.into_iter().flat_map(|field_id| {
+    // let all_moves = pieces.into_iter().flat_map(|field_id| {
+    //     let moves = calc_possible_moves(field_id, board);
+    //     wrap_moves(moves, field_id)
+    // }).collect();
+
+    // all_moves
+
+    let filtered = board.fields.iter().enumerate().filter_map(|(i, p)| {
+        if is_same_color_b(p, color)
+        {
+            Some(i as u8)
+        }
+        else
+        {
+            None
+        }
+    });
+    
+    let all_moves = filtered.flat_map(|field_id| {
         let moves = calc_possible_moves(field_id, board);
-        wrap_moves(moves, field_id)
+        moves.into_iter().map(move |m| { Move {source: field_id, target: m} })
     }).collect();
 
     all_moves
-}
-
-fn wrap_moves(moves: Vec<u8>, field_id: u8) -> Vec<Move> {
-    moves.into_iter().map(|m| { Move {source: field_id.clone(), target: m} }).collect()
 }
 
 fn do_ai_move(source: u8, target: u8, board: &mut BoardState, turn: Color) -> GameResult {
@@ -739,82 +801,109 @@ fn calculate_best_move(board: &BoardState) -> (Move, i32) {
         .expect("performance should be available");
 
     let start = performance.now();
-    //moveCount = 0;
-
-    let selected_move = calculate_best_half_move(Color::Black, board, 2, -99999, 99999);
-
+    let selected_move = calculate_best_half_move(Color::Black, board, 1, -99999, 99999);
     let end = performance.now();
-
-    // console.log("Selected move: " + get_coord_from_id(selectedMove[0].source) + " -> " + get_coord_from_id(selectedMove[0].target))
-    console::log_2(&"Time: ${} ms".into(), &(end - start).into());
-    // console.log("Move Count: " + moveCount);
+    console::log_3(&"Selected move: ".into(), &get_coord_from_id(selected_move.0.source).into(), &get_coord_from_id(selected_move.0.target).into());
+    console::log_2(&"Time: ${} ms".into(), &((end - start)).into());
 
     return selected_move;
 }
 
 fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: i32, _beta: i32) -> (Move, i32) {
-    let mut alpha = _alpha;
-    let mut beta = _beta; 
-    
-    let valid_moves = all_moves(board, turn);
+    let window = web_sys::window().expect("should have a window in this context");
+    let performance = window
+    .performance()
+    .expect("performance should be available");
 
-    let ordered_moves = order_moves(valid_moves, board);
+    let n = 100;
+
+    let mark1 = performance.now();
+    for _ in 0..n 
+    {
+        let valid_moves = all_moves(board, turn);
+    }
+    let valid_moves = all_moves(board, turn);
+    let mark2 = performance.now();
+    for _ in 0..n 
+    {
+        let ordered_moves = order_moves(&valid_moves, board);
+    }
+    let ordered_moves = order_moves(&valid_moves, board);
 
     // black turn -> search highest possible score
     // white turn -> search lowest possible score
-    let mut best_move: (Move, i32) = (ordered_moves[0], if turn == Color::Black { -99999 } else { 99999 });
+    
+    let mark3 = performance.now();
 
-    for m in ordered_moves {
-        // do move
-        console::log_3(&"Try move".into(), &m.source.into(), &m.target.into());
-        let mut new_board_state = board.clone();
-        let result = do_ai_move(m.source, m.target, &mut new_board_state, turn);
-        //moveCount += 1;
-        if result == GameResult::WhiteWin {
-            if turn == Color::Black {
-                continue;
-            } else {
-                return (m, -99999);
-            }
-        }
-        if result == GameResult::BlackWin {
-            if turn == Color::Black {
-                return (m, 99999);
-            } else {
-                continue;
-            }
-        }
-        let score;
-        console::log_2(&"Depth".into(), &depth.into());
-        if result == GameResult::Draw {
-            score = 0;
-        } else if depth > 1 {
-            console::log_1(&"Go deeper".into());
-            let result = calculate_best_half_move(other_color(turn), &new_board_state, depth - 1, alpha, beta);
-            score = result.1;
-        } else {
-            score = -calc_board_value(&new_board_state);
-        }
-        console::log_2(&"Score".into(), &score.into());
-        if turn == Color::Black {
-            if score > best_move.1 {
-                best_move = (m, score);
-            }
-            alpha = cmp::max(alpha, best_move.1)
-        } else {
-            if score < best_move.1 {
-                best_move = (m, score);
-            }
-            beta = cmp::min(beta, best_move.1)
-        }
+    let mut real_best_move = (ordered_moves[0], if turn == Color::Black { -99999 } else { 99999 });
 
-        if alpha >= beta {
-            //console.log("cutoff")
-            break;
+    for _ in 0..n 
+    {
+        let mut best_move: (Move, i32) = (ordered_moves[0], if turn == Color::Black { -99999 } else { 99999 });
+
+        let mut alpha = _alpha;
+        let mut beta = _beta; 
+
+        for m in &ordered_moves {
+            // do move
+            // console::log_3(&"Try move".into(), &m.source.into(), &m.target.into());
+            let mut new_board_state = board.clone();
+            let result = do_ai_move(m.source, m.target, &mut new_board_state, turn);
+            //moveCount += 1;
+            if result == GameResult::WhiteWin {
+                if turn == Color::Black {
+                    panic!("white win while black turn")
+                } else {
+                    return (m.clone(), -99999);
+                }
+            }
+            if result == GameResult::BlackWin {
+                if turn == Color::Black {
+                    return (m.clone(), 99999);
+                } else {
+                    panic!("black win while white turn")
+                }
+            }
+            let score;
+            // console::log_2(&"Depth".into(), &depth.into());
+            if result == GameResult::Draw {
+                score = 0;
+            } else if depth > 1 {
+                // console::log_1(&"Go deeper".into());
+                let result = calculate_best_half_move(other_color(turn), &new_board_state, depth - 1, alpha, beta);
+
+                score = result.1;
+            } else {
+                score = calc_board_value(&new_board_state);
+            }
+            // console::log_2(&"Score".into(), &score.into());
+            if turn == Color::Black {
+                if score > best_move.1 {
+                    best_move = (m.clone(), score);
+                }
+                alpha = cmp::max(alpha, best_move.1)
+            } else {
+                if score < best_move.1 {
+                    best_move = (m.clone(), score);
+                }
+                beta = cmp::min(beta, best_move.1)
+            }
+
+            real_best_move = best_move;
+
+            if alpha >= beta {
+                //console.log("cutoff")
+                break;
+            }
         }
     }
+    let mark4 = performance.now();
 
-    console::log_4(&"Selected move".into(), &best_move.0.source.into(), &best_move.0.target.into(),  &best_move.1.into());
+    console::log_2(&"all moves".into(), &(mark2 - mark1).into());
+    console::log_2(&"order moves".into(), &(mark3 - mark2).into());
+    console::log_2(&"do moves".into(), &(mark4 - mark3).into());
 
-    return best_move;
+    // console::log_4(&"Selected move".into(), &best_move.0.source.into(), &best_move.0.target.into(),  &best_move.1.into());
+
+    return real_best_move;
 }
