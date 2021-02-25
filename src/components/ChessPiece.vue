@@ -260,11 +260,12 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
-import { is_same_color, Color, Kind, Piece, get_kind } from "rust-chess";
+import { is_same_color, Color } from "rust-chess";
+import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from "@/wasmWrapper";
 
 @Component
 export default class ChessPiece extends Vue {
-  @Prop() private piece!: Piece;
+  @Prop() private piece!: number;
   @Prop() private selected!: boolean;
   @Prop() private isShadow!: boolean;
 
@@ -275,22 +276,22 @@ export default class ChessPiece extends Vue {
     return is_same_color(this.piece, Color.White);
   }
   IsKing() {
-    return get_kind(this.piece) === Kind.King;
+    return (this.piece & KING) != 0;
   }
   IsQueen() {
-    return get_kind(this.piece) === Kind.Queen;
+    return (this.piece & QUEEN) != 0;
   }
   IsBishop() {
-    return get_kind(this.piece) === Kind.Bishop;
+    return (this.piece & BISHOP) != 0;
   }
   IsRook() {
-    return get_kind(this.piece) === Kind.Rook;
+    return (this.piece & ROOK) != 0;
   }
   IsPawn() {
-    return get_kind(this.piece) === Kind.Pawn;
+    return (this.piece & PAWN) != 0;
   }
   IsKnight() {
-    return get_kind(this.piece) === Kind.Knight;
+    return (this.piece & KNIGHT) != 0;
   }
 }
 </script>

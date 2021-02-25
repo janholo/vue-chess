@@ -21,13 +21,18 @@ export function calcFieldInfos() {
 }
 
 export type BoardState = {
-    fields: [wasm.Piece],
-    takenPieces: [wasm.Piece],
+    fields: [number],
+    taken_pieces: [number],
 }
 
-function castPiece(pieceString: any): wasm.Piece {
-    return wasm.Piece[pieceString] as unknown as wasm.Piece;
-}
+export const PAWN = 1;
+export const KNIGHT = 2;
+export const BISHOP = 4;
+export const ROOK = 8;
+export const QUEEN = 16;
+export const KING = 32;
+export const WHITE = 64;
+export const BLACK = 128;
 
 export function getInitialBoard() {
     let boardStateWasm = wasm.get_initial_board_js();
@@ -36,55 +41,24 @@ export function getInitialBoard() {
 }
 
 function fromWasm(boardState: any): BoardState {
-    return {
-        fields: boardState.fields.map(castPiece),
-        takenPieces: boardState.taken_pieces.map(castPiece),
-    }
-}
-
-function toWasm(boardState: BoardState): any {
-    let pieces = [        
-        "WhiteKing",
-        "WhiteQueen",
-        "WhiteRook",
-        "WhiteBishop",
-        "WhiteKnight",
-        "WhitePawn",
-        "Empty",
-        "BlackKing",
-        "BlackQueen",
-        "BlackRook",
-        "BlackBishop",
-        "BlackKnight",
-        "BlackPawn",
-      ];
-
-    return { fields: boardState.fields.map(p => pieces[p]), taken_pieces: boardState.takenPieces.map(p => pieces[p])}
+    return boardState as BoardState
 }
 
 export function calcPossibleMoves(fieldId: number, boardState: BoardState): number[] {
-    let boardStateWasm = toWasm(boardState);
-
-    let moves = wasm.calc_possible_moves_js(fieldId, boardStateWasm)
+    let moves = wasm.calc_possible_moves_js(fieldId, boardState)
     return moves
 }
 
 export function movePiece(from: number, to: number, boardState: BoardState) {
-    let boardStateWasm = toWasm(boardState);
-    
-    let newState = wasm.move_piece_js(from, to, boardStateWasm)
+    let newState = wasm.move_piece_js(from, to, boardState)
 
     return fromWasm(newState)
 }
 
 export function checkGameState(boardState: BoardState, turn: wasm.Color) {
-    let boardStateWasm = toWasm(boardState);
-
-    return wasm.check_game_state_js(boardStateWasm, turn);
+    return wasm.check_game_state_js(boardState, turn);
 }
 
 export function calculateBestMove(boardState: BoardState): wasm.Move {
-    let boardStateWasm = toWasm(boardState);
-    
-    return wasm.calculate_best_move_js(boardStateWasm);
+    return wasm.calculate_best_move_js(boardState);
 }

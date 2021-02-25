@@ -59,7 +59,7 @@ import { GameState } from "@/types";
 import ChessField from "./ChessField.vue";
 import ChessPiece from "./ChessPiece.vue";
 import { ChessHelpers } from "@/chessHelpers";
-import { Color, GameResult, Piece, is_same_color } from "rust-chess";
+import { Color, GameResult, is_same_color } from "rust-chess";
 
 @Component({
   components: {
@@ -77,7 +77,7 @@ export default class ChessBoard extends Vue {
       let oldPosition = old == undefined ? -1 : old[0];
       if (oldPosition === i) {
         // old piece
-        let oldPiece = old == undefined ? Piece.Empty : old[1];
+        let oldPiece = old == undefined ? 0 : old[1];
         return [oldPiece, this.gameState.fieldInfos[i], true];
       }
       // normal piece
@@ -104,13 +104,13 @@ export default class ChessBoard extends Vue {
     this.gameResult = GameResult.Pending;
   }
   whiteTakenPieces() {
-    let whitePieces = this.gameState.boardState.takenPieces.filter(p => is_same_color(p, Color.White));
+    let whitePieces = this.gameState.boardState.taken_pieces.filter(p => is_same_color(p, Color.White));
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });
   }
   blackTakenPieces() {
-    let whitePieces = this.gameState.boardState.takenPieces.filter(p => is_same_color(p, Color.Black));
+    let whitePieces = this.gameState.boardState.taken_pieces.filter(p => is_same_color(p, Color.Black));
     return whitePieces.map((p, i) => {
       return { column: 18 - i, piece: p };
     });

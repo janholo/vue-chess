@@ -22,7 +22,7 @@
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
 import ChessPiece from "./ChessPiece.vue";
-import { is_same_color, Piece, Color } from "rust-chess";
+import { is_same_color, Color } from "rust-chess";
 import { FieldInfo } from '@/wasmWrapper';
 
 @Component({
@@ -32,7 +32,7 @@ import { FieldInfo } from '@/wasmWrapper';
 })
 export default class ChessField extends Vue {
   @Prop() private fieldInfo!: FieldInfo;
-  @Prop() private field!: Piece;
+  @Prop() private field!: number;
   @Prop() private isShadow!: boolean;
   @Prop() private selected!: boolean;
   @Prop() private possible!: boolean;
@@ -44,7 +44,7 @@ export default class ChessField extends Vue {
     return is_same_color(this.field, Color.White);
   }
   IsEmpty() {
-    return this.field == Piece.Empty;
+    return this.field == 0;
   }
 }
 </script>

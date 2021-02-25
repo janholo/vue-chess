@@ -4,15 +4,11 @@ use web_sys::console;
 use crate::core::{
     Move,
     BoardState,
-    Piece,
     is_same_color,
     Color,
-    get_kind,
-    Kind,
-    is_same_color_b,
     GameResult,
     get_coord,
-    other_color
+    PieceFlags
 };
 
 use crate::moves::{
@@ -101,11 +97,11 @@ const PIECE_SQUARE_TABLE_KING: [i32; 64] = [
     20, 30, 10,  0,  0, 10, 30, 20
 ];
 
-fn calc_piece_value(piece: Piece, position: u8) -> i32 {
-    if piece == Piece::Empty {
+fn calc_piece_value(piece: PieceFlags, position: u8) -> i32 {
+    if piece.is_empty() {
         return 0;
     }
-    let index = if is_same_color(piece, Color::Black) {
+    let index = if piece.contains(PieceFlags::BLACK) {
         // mirror position around center
         let old_x = position % 8;
         let old_y = position / 8;
@@ -116,56 +112,54 @@ fn calc_piece_value(piece: Piece, position: u8) -> i32 {
         position as usize
     };
 
-    let kind = get_kind(piece);
-    match kind {
-        Kind::None => {
-            0
-        }
-        Kind::Pawn => {
-            100 + PIECE_SQUARE_TABLE_PAWN[index]
-        }
-        Kind::Bishop => {
-            300 + PIECE_SQUARE_TABLE_BISHOP[index]
-        }
-        Kind::Knight => {
-            300 + PIECE_SQUARE_TABLE_KNIGHT[index]
-        }
-        Kind::Rook => {
-            500 + PIECE_SQUARE_TABLE_ROOK[index]
-        }
-        Kind::Queen => {
-            900 + PIECE_SQUARE_TABLE_QUEEN[index]
-        }
-        Kind::King => {
-            0 + PIECE_SQUARE_TABLE_KING[index]
-        }
+    if piece.contains(PieceFlags::PAWN) {
+        100 + PIECE_SQUARE_TABLE_PAWN[index]
+    }
+    else if piece.contains(PieceFlags::BISHOP) {
+        300 + PIECE_SQUARE_TABLE_BISHOP[index]
+    }
+    else if piece.contains(PieceFlags::KNIGHT) {
+        300 + PIECE_SQUARE_TABLE_KNIGHT[index]
+    }
+    else if piece.contains(PieceFlags::ROOK) {
+        500 + PIECE_SQUARE_TABLE_ROOK[index]
+    }
+    else if piece.contains(PieceFlags::QUEEN) {
+        900 + PIECE_SQUARE_TABLE_QUEEN[index]
+    }
+    else if piece.contains(PieceFlags::KING) {
+        0 + PIECE_SQUARE_TABLE_KING[index]
+    }
+    else {
+        panic!("No piece left - this should not happen")
     }
 }
 
-fn calc_piece_value_without_table(piece: Piece, _position: u8) -> i32 {
-    let kind = get_kind(piece);
-    match kind {
-        Kind::None => {
-            0
-        }
-        Kind::Pawn => {
-            100
-        }
-        Kind::Bishop => {
-            300
-        }
-        Kind::Knight => {
-            300
-        }
-        Kind::Rook => {
-            500
-        }
-        Kind::Queen => {
-            900
-        }
-        Kind::King => {
-            0
-        }
+fn calc_piece_value_without_table(piece: PieceFlags, _position: u8) -> i32 {
+    if piece.is_empty() {
+        return 0;
+    }
+
+    if piece.contains(PieceFlags::PAWN) {
+        100
+    }
+    else if piece.contains(PieceFlags::BISHOP) {
+        300
+    }
+    else if piece.contains(PieceFlags::KNIGHT) {
+        300
+    }
+    else if piece.contains(PieceFlags::ROOK) {
+        500
+    }
+    else if piece.contains(PieceFlags::QUEEN) {
+        900
+    }
+    else if piece.contains(PieceFlags::KING) {
+        0
+    }
+    else {
+        panic!("No piece left - this should not happen")
     }
 }
 
@@ -177,17 +171,8 @@ fn calc_board_value(board: &BoardState) -> i32 {
 }
 
 fn all_moves(board: &BoardState, color: Color) -> Vec<Move> {
-    // let pieces = get_field_ids_of_pieces(color, board);
-
-    // let all_moves = pieces.into_iter().flat_map(|field_id| {
-    //     let moves = calc_possible_moves(field_id, board);
-    //     wrap_moves(moves, field_id)
-    // }).collect();
-
-    // all_moves
-
     let filtered = board.fields.iter().enumerate().filter_map(|(i, p)| {
-        if is_same_color_b(p, color)
+        if is_same_color(*p, color)
         {
             Some(i as u8)
         }
@@ -218,7 +203,7 @@ pub fn calculate_best_move(board: &BoardState) -> (Move, i32) {
         .expect("performance should be available");
 
     let start = performance.now();
-    let selected_move = calculate_best_half_move(Color::Black, board, 1, -99999, 99999);
+    let selected_move = calculate_best_half_move(Color::Black, board, 5, -99999, 99999);
     let end = performance.now();
     console::log_3(&"Selected move: ".into(), &get_coord(selected_move.0.source).into(), &get_coord(selected_move.0.target).into());
     console::log_2(&"Time: ${} ms".into(), &((end - start)).into());
@@ -227,34 +212,35 @@ pub fn calculate_best_move(board: &BoardState) -> (Move, i32) {
 }
 
 fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: i32, _beta: i32) -> (Move, i32) {
-    let window = web_sys::window().expect("should have a window in this context");
-    let performance = window
-    .performance()
-    .expect("performance should be available");
+    // let window = web_sys::window().expect("should have a window in this context");
+    // let performance = window
+    // .performance()
+    // .expect("performance should be available");
 
-    let n = 100;
+    //Set this high to measure time
+    let n = 0;
 
-    let mark1 = performance.now();
-    for _ in 0..n 
-    {
-        let valid_moves = all_moves(board, turn);
-    }
+    // let mark1 = performance.now();
+    // for _ in 0..n 
+    // {
+    //     let _valid_moves = all_moves(board, turn);
+    // }
     let valid_moves = all_moves(board, turn);
-    let mark2 = performance.now();
-    for _ in 0..n 
-    {
-        let ordered_moves = order_moves(&valid_moves, board);
-    }
+    // let mark2 = performance.now();
+    // for _ in 0..n 
+    // {
+    //     let _ordered_moves = order_moves(&valid_moves, board);
+    // }
     let ordered_moves = order_moves(&valid_moves, board);
 
     // black turn -> search highest possible score
     // white turn -> search lowest possible score
     
-    let mark3 = performance.now();
+    // let mark3 = performance.now();
 
     let mut real_best_move = (ordered_moves[0], if turn == Color::Black { -99999 } else { 99999 });
 
-    for _ in 0..n 
+    for _ in 0..n+1 
     {
         let mut best_move: (Move, i32) = (ordered_moves[0], if turn == Color::Black { -99999 } else { 99999 });
 
@@ -287,7 +273,7 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
                 score = 0;
             } else if depth > 1 {
                 // console::log_1(&"Go deeper".into());
-                let result = calculate_best_half_move(other_color(turn), &new_board_state, depth - 1, alpha, beta);
+                let result = calculate_best_half_move(turn.other_color(), &new_board_state, depth - 1, alpha, beta);
 
                 score = result.1;
             } else {
@@ -314,11 +300,11 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
             }
         }
     }
-    let mark4 = performance.now();
+    // let mark4 = performance.now();
 
-    console::log_2(&"all moves".into(), &(mark2 - mark1).into());
-    console::log_2(&"order moves".into(), &(mark3 - mark2).into());
-    console::log_2(&"do moves".into(), &(mark4 - mark3).into());
+    // console::log_2(&"all moves".into(), &(mark2 - mark1).into());
+    // console::log_2(&"order moves".into(), &(mark3 - mark2).into());
+    // console::log_2(&"do moves".into(), &(mark4 - mark3).into());
 
     // console::log_4(&"Selected move".into(), &best_move.0.source.into(), &best_move.0.target.into(),  &best_move.1.into());
 
