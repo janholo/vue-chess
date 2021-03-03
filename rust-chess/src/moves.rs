@@ -50,7 +50,7 @@ pub fn calc_possible_moves(field_id: u8, board: &BoardState) -> Vec<u8> {
     return valid_moves;
 }
 
-fn calc_possible_moves_raw(field_id: u8, board: &BoardState) -> Vec<u8> {
+pub fn calc_possible_moves_raw(field_id: u8, board: &BoardState) -> Vec<u8> {
     let piece = board.fields[field_id as usize];
 
     let mut moves = Vec::new();
