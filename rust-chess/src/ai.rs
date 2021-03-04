@@ -1,4 +1,3 @@
-use crate::moves::calc_possible_moves_raw;
 use std::cmp;
 use web_sys::console;
 
@@ -7,22 +6,21 @@ use crate::core::{
     BoardState,
     is_same_color,
     Color,
-    GameResult,
     get_coord,
     PieceFlags
 };
 
 use crate::moves::{
-    calc_possible_moves,
     move_piece,
-    check_game_state
+    calc_possible_moves_raw,
+    undo_move_piece
 };
 
-fn order_moves(moves: &Vec<Move>, board: &BoardState) -> Vec<Move> {
+fn order_moves(moves: Vec<Move>, board: &BoardState) -> Vec<Move> {
     let mut moves_and_values: Vec<(Move, i32)> = moves.into_iter().map(|m| {
         let target_value = calc_piece_value(board.fields[m.target as usize], m.target);
         let source_value = calc_piece_value(board.fields[m.source as usize], m.source);
-        (m.clone(), target_value - source_value)
+        (m, target_value - source_value)
     }).collect();
 
     moves_and_values.sort_unstable_by(|(_, v1), (_, v2)| {
@@ -129,40 +127,12 @@ fn calc_piece_value(piece: PieceFlags, position: u8) -> i32 {
         900 + PIECE_SQUARE_TABLE_QUEEN[index]
     }
     else if piece.contains(PieceFlags::KING) {
-        0 + PIECE_SQUARE_TABLE_KING[index]
+        10000 + PIECE_SQUARE_TABLE_KING[index]
     }
     else {
         panic!("No piece left - this should not happen")
     }
 }
-
-// fn calc_piece_value_without_table(piece: PieceFlags, _position: u8) -> i32 {
-//     if piece.is_empty() {
-//         return 0;
-//     }
-
-//     if piece.contains(PieceFlags::PAWN) {
-//         100
-//     }
-//     else if piece.contains(PieceFlags::BISHOP) {
-//         300
-//     }
-//     else if piece.contains(PieceFlags::KNIGHT) {
-//         300
-//     }
-//     else if piece.contains(PieceFlags::ROOK) {
-//         500
-//     }
-//     else if piece.contains(PieceFlags::QUEEN) {
-//         900
-//     }
-//     else if piece.contains(PieceFlags::KING) {
-//         10000
-//     }
-//     else {
-//         panic!("No piece left - this should not happen")
-//     }
-// }
 
 fn calc_board_value(board: &BoardState) -> i32 {
     board.fields.iter().enumerate().map(|(i, &p)| {
@@ -198,7 +168,12 @@ pub fn calculate_best_move(board: &BoardState) -> (Move, i32) {
         .expect("performance should be available");
 
     let start = performance.now();
-    let selected_move = calculate_best_half_move(Color::Black, board, 6, -99999, 99999);
+
+    let mut board_to_calculate = board.clone();
+
+    let wrapped_selected_move = calculate_best_half_move(Color::Black, &mut board_to_calculate, 6, -99999, 99999);
+    // This should never panic
+    let selected_move = wrapped_selected_move.unwrap();
     let end = performance.now();
     console::log_3(&"Selected move: ".into(), &get_coord(selected_move.0.source).into(), &get_coord(selected_move.0.target).into());
     console::log_2(&"Time: ${} ms".into(), &((end - start)).into());
@@ -206,9 +181,13 @@ pub fn calculate_best_move(board: &BoardState) -> (Move, i32) {
     return selected_move;
 }
 
-fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: i32, _beta: i32) -> (Move, i32) {
+fn calculate_best_half_move(turn: Color, board: &mut BoardState, depth: u8, _alpha: i32, _beta: i32) -> Option<(Move, i32)> {
     let valid_moves = all_moves(board, turn);
-    let ordered_moves = order_moves(&valid_moves, board);
+    let ordered_moves = order_moves(valid_moves, board);
+
+    if ordered_moves.len() < 1 {
+        return None
+    }
 
     // black turn -> search highest possible score
     // white turn -> search lowest possible score
@@ -221,28 +200,37 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
     for m in &ordered_moves {
         // do move
         // console::log_3(&"Try move".into(), &m.source.into(), &m.target.into());
-        let mut new_board_state = board.clone();
-        move_piece(m.source, m.target, &mut new_board_state);
+        let undo_info = move_piece(m.source, m.target, board);
+
         //moveCount += 1;
         let score;
         // console::log_2(&"Depth".into(), &depth.into());
         if depth > 1 {
             // console::log_1(&"Go deeper".into());
-            let result = calculate_best_half_move(turn.other_color(), &new_board_state, depth - 1, alpha, beta);
+            let result = calculate_best_half_move(turn.other_color(), board, depth - 1, alpha, beta);
 
-            score = result.1;
+            match result {
+                Some(r) => score = r.1,
+                None => {
+                    undo_move_piece(undo_info, board);
+                    continue;
+                }
+            }
         } else {
-            score = calc_board_value(&new_board_state);
+            score = calc_board_value(&board);
         }
+
+        undo_move_piece(undo_info, board);
+
         // console::log_2(&"Score".into(), &score.into());
         if turn == Color::Black {
             if score > best_move.1 {
-                best_move = (m.clone(), score);
+                best_move = (*m, score);
             }
             alpha = cmp::max(alpha, best_move.1)
         } else {
             if score < best_move.1 {
-                best_move = (m.clone(), score);
+                best_move = (*m, score);
             }
             beta = cmp::min(beta, best_move.1)
         }
@@ -254,5 +242,5 @@ fn calculate_best_half_move(turn: Color, board: &BoardState, depth: u8, _alpha: 
     }
     // console::log_4(&"Selected move".into(), &best_move.0.source.into(), &best_move.0.target.into(),  &best_move.1.into());
 
-    return best_move;
+    Some(best_move)
 }

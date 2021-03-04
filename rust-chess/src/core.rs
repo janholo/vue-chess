@@ -103,7 +103,7 @@ pub struct BoardState {
 
 pub fn get_initial_board() -> BoardState {
     let fields = get_initial_fields();
-    let taken_pieces = Vec::new();
+    let taken_pieces = Vec::with_capacity(32);
     BoardState { fields, taken_pieces }
 }
 

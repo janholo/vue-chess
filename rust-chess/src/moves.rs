@@ -167,30 +167,36 @@ fn get_position(field_id: u8, x: i8, y: i8) -> Option<u8> {
     }
 }
 
-pub fn move_piece(from: u8, to: u8, board: &mut BoardState) {
-    let mut piece = board.fields[from as usize];
+pub fn move_piece(from: u8, to: u8, board: &mut BoardState) -> (u8, PieceFlags, u8, PieceFlags) {
+    let piece = board.fields[from as usize];
     board.fields[from as usize] = PieceFlags::empty();
-    // console::log_1(&"Piece".into());
-    // console::log_1(&JsValue::from_serde(&piece).unwrap());
     // add "to" piece to taken pieces
     let old_piece = board.fields[to as usize];
     if !old_piece.is_empty() {
         board.taken_pieces.push(old_piece);
     }
 
+    let mut transformed_piece = piece;
     // transform pawns to queens
-    if piece.contains(PieceFlags::PAWN)
+    if transformed_piece.contains(PieceFlags::PAWN)
     {
-        if (to <= 7 && piece.contains(PieceFlags::WHITE)) || (to >= 7*8 && piece.contains(PieceFlags::BLACK)) {
-            piece.remove(PieceFlags::PAWN);
-            piece.insert(PieceFlags::QUEEN);
-        }  
+        if (to <= 7 && transformed_piece.contains(PieceFlags::WHITE)) || (to >= 7*8 && transformed_piece.contains(PieceFlags::BLACK)) {
+            transformed_piece.remove(PieceFlags::PAWN);
+            transformed_piece.insert(PieceFlags::QUEEN);
+        }
+    }
+    board.fields[to as usize] = piece;
+
+    (from, piece, to, old_piece)
+}
+
+pub fn undo_move_piece(undo_info: (u8, PieceFlags, u8, PieceFlags), board: &mut BoardState) {
+    if !undo_info.3.is_empty() {
+        board.taken_pieces.pop();
     }
 
-    // console::log_1(&from.into());
-    // console::log_1(&to.into());
-    board.fields[to as usize] = piece;
-    // console::log_1(&JsValue::from_serde(&board.fields[to as usize]).unwrap());
+    board.fields[undo_info.0 as usize] = undo_info.1;
+    board.fields[undo_info.2 as usize] = undo_info.3;
 }
 
 pub fn check_game_state(board: &BoardState, turn: Color) -> GameResult {
